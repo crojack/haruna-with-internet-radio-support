@@ -1,50 +1,28 @@
-<!--
-SPDX-FileCopyrightText: 2020 George Florea Bănuș <georgefb899@gmail.com>
 
-SPDX-License-Identifier: CC-BY-4.0
--->
+# Haruna with internet radio support
 
-### [Read before reporting a bug or requesting a feature](./bugs_and_feature_requests.md)
+Haruna with internet radio support is an open source media player built with Qt/QML and libmpv. It's a temporary fork of the official Haruna media player.
+This fork is used for experimenting with internet radio functionality. 
 
-----
+<img width="3840" height="2160" alt="Screenshot_20251117_021025" src="https://github.com/user-attachments/assets/12371035-d8ea-453e-84f8-0f0b8b95bc8d" />
 
-#### Donate: [GitHub Sponsors](https://github.com/sponsors/g-fb) | [Liberapay](https://liberapay.com/gfb/) | [PayPal](https://paypal.me/georgefloreabanus)
+<img width="3840" height="2160" alt="Screenshot_20251117_021106" src="https://github.com/user-attachments/assets/76120491-be75-412c-8bc0-170be2205984" />
 
-# Haruna
+<img width="3840" height="2160" alt="Screenshot_20251117_021205" src="https://github.com/user-attachments/assets/1555ee3b-1a9d-4c58-a119-9d9796e44b93" />
 
-Haruna is an open source media player built with Qt/QML and libmpv.
+<img width="3840" height="2160" alt="Screenshot_20251117_021229" src="https://github.com/user-attachments/assets/ba76c570-5ac2-4e89-b1d3-2d5734cb0e85" />
 
-![Haruna main window](./data/screenshots/haruna-dark.png)
-For more screnshots go to [Haruna's website](https://haruna.kde.org)
+<img width="3840" height="2160" alt="Screenshot_20251117_021333" src="https://github.com/user-attachments/assets/456fd1e6-8cf6-4dd0-b55e-19443b583f62" />
 
-# Install
+<img width="3840" height="2160" alt="Screenshot_20251117_021527" src="https://github.com/user-attachments/assets/5102b75d-7d1c-4d3f-b799-016d43db614b" />
 
-https://flathub.org/apps/details/org.kde.haruna
 
-```
-flatpak install flathub org.kde.haruna
-flatpak run org.kde.haruna
-```
-
-[Flatpak setup guide](https://flatpak.org/setup/)
 
 # Features
 
-these are just some features that set Haruna apart from others players
-
-- video preview on seek/progress bar
-
-- play online videos, through youtube-dl
-
-- toggle playlist with mouse-over, playlist overlays the video
-
-- auto skip chapter containing certain words
-
-- configurable shortcuts and mouse buttons
-
-- quick jump to next chapter by middle click on progress bar
-
-- custom mpv commands, can be run at start up or on keyboard shortcut
+Two separate playlists, one for videos and music and the other one for internet radio
+Search for internet radio stations by name, genres, country, city
+Add favourites to favourites playlist
 
 # Dependencies
 Dependencies will be printed by `cmake` when building.
@@ -52,9 +30,11 @@ Dependencies will be printed by `cmake` when building.
 # Build
 
 ```bash
-git clone https://invent.kde.org/multimedia/haruna.git
-cd haruna
+git clone https://github.com/crojack/haruna-with-internet-radio-support
+cd haruna-with-internet-radio-support
 cmake -B build -G Ninja
 cmake --build build
+(if the build is ok, you can try the application by launching it from the build directory: ./build/bin/haruna)
+If everything works as it should run:
 cmake --install build
 ```
