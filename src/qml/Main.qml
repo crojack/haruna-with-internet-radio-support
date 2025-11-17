@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2020 George Florea Bănuș <georgefb899@gmail.com>
+ * SPDX-FileCopyrightText: 2020 George Florea BÃ„Æ’nuÃˆâ„¢ <georgefb899@gmail.com>
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
@@ -10,15 +10,17 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
+import Qt.labs.platform 1.1
 
 import org.kde.kirigami as Kirigami
 import org.kde.config as KConfig
 
 import org.kde.haruna
-import org.kde.haruna.playlist
+import org.kde.haruna.playlist 1.0
 import org.kde.haruna.utilities
 import org.kde.haruna.settings
 import org.kde.haruna.youtube
+import org.kde.haruna.radio 1.0
 
 ApplicationWindow {
     id: window
@@ -35,6 +37,7 @@ ApplicationWindow {
     minimumWidth: 400
     minimumHeight: 200
     color: Kirigami.Theme.backgroundColor
+    
 
     onVisibilityChanged: function(visibility) {
         if (PlaybackSettings.pauseWhileMinimized) {
@@ -193,11 +196,48 @@ ApplicationWindow {
         Component.onCompleted: active = GeneralSettings.rememberWindowGeometry
     }
 
+    // Background image - sits behind everything
+    Image {
+        id: backgroundImage
+
+        anchors.fill: parent
+        z: -1  // Force behind all other components
+        // Use StandardPaths; it resolves to ~/.local/share/KDE/haruna on your system
+        source: StandardPaths.writableLocation(StandardPaths.AppDataLocation) + "/background/background.png"
+        fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+
+        // Show when there's no video track (audio-only: radio/music)
+        visible: mpv.videoWidth === 0 && mpv.videoHeight === 0
+        
+        // Debug: monitor visibility changes
+        onVisibleChanged: {
+            console.log("Background image visible:", visible, "videoWidth:", mpv.videoWidth, "videoHeight:", mpv.videoHeight)
+        }
+
+        onStatusChanged: {
+            if (status === Image.Error) {
+                console.log("Background PNG not found, trying JPG fallback")
+                source = StandardPaths.writableLocation(StandardPaths.AppDataLocation) + "/background/background.jpg"
+            } else if (status === Image.Ready) {
+                console.log("Background image loaded successfully")
+            }
+        }
+
+        // Fallback color if image doesn't exist
+        Rectangle {
+            anchors.fill: parent
+            color: Kirigami.Theme.backgroundColor
+            z: -1
+        }
+    }
+
     MpvVideo {
         id: mpv
 
         osd: osd
         mouseActionsModel: mouseActionsModel
+        radioStationsModel: radioStationsModel
 
         width: window.contentItem.width
         height: window.isFullScreen()
@@ -211,9 +251,7 @@ ApplicationWindow {
                        : (PlaylistSettings.position === "right" ? playlist.left : window.contentItem.right)
         anchors.top: window.contentItem.top
 
-        onVideoReconfig: {
-            window.resizeWindow()
-        }
+        onVideoReconfig: window.resizeWindow()
 
         onAddToRecentFiles: function(url, openedFrom, name) {
             recentFilesModel.addRecentFile(url, openedFrom, name)
@@ -221,19 +259,18 @@ ApplicationWindow {
 
         Osd {
             id: osd
-
             active: mpv.isReady
             maxWidth: mpv.width
         }
 
         SelectActionPopup {
             id: triggerActionPopup
-
             onActionSelected: function(actionName) {
                 HarunaApp.actions[actionName].trigger()
             }
         }
     }
+
 
     // extra space outside the playlist so that the playlist is not closed
     // when the mouse leaves it by mistake (dragging items, resizing the playlist)
@@ -335,6 +372,10 @@ ApplicationWindow {
 
     RecentFilesModel {
         id: recentFilesModel
+    }
+
+    RadioStationsModel {
+        id: radioStationsModel
     }
 
     RowLayout {
@@ -451,14 +492,14 @@ ApplicationWindow {
         id: fileDialog
 
         title: i18nc("@title:window", "Select File")
-        currentFolder: GeneralSettings.fileDialogLastLocation
+        folder: GeneralSettings.fileDialogLastLocation
         fileMode: FileDialog.OpenFile
 
         onAccepted: {
-            window.openFile(fileDialog.selectedFile, RecentFilesModel.OpenedFrom.OpenAction)
+            window.openFile(fileDialog.file, RecentFilesModel.OpenedFrom.OpenAction)
             mpv.focus = true
 
-            GeneralSettings.fileDialogLastLocation = PathUtils.parentUrl(fileDialog.selectedFile)
+            GeneralSettings.fileDialogLastLocation = PathUtils.parentUrl(fileDialog.file)
             GeneralSettings.save()
         }
         onRejected: mpv.focus = true
@@ -471,13 +512,13 @@ ApplicationWindow {
         id: subtitlesFileDialog
 
         title: i18nc("@title:window", "Select Subtitles File")
-        currentFolder: PathUtils.parentUrl(mpv.currentUrl)
+        folder: PathUtils.parentUrl(mpv.currentUrl)
         fileMode: FileDialog.OpenFile
         nameFilters: ["Subtitles (*.srt *.ssa *.ass *.sub)"]
 
         onAccepted: {
-            if (window.acceptedSubtitleTypes.includes(MiscUtils.mimeType(subtitlesFileDialog.selectedFile))) {
-                mpv.addSubtitles(subtitlesFileDialog.selectedFile)
+            if (window.acceptedSubtitleTypes.includes(MiscUtils.mimeType(subtitlesFileDialog.file))) {
+                mpv.addSubtitles(subtitlesFileDialog.file)
             }
         }
         onRejected: mpv.focus = true
@@ -507,6 +548,26 @@ ApplicationWindow {
 
             GeneralSettings.lastText = url
             GeneralSettings.save()
+        }
+    }
+
+    function playlistExists(name) {
+        for (let i = 0; i < mpv.playlists.count; ++i) {
+            const playlist = mpv.playlists.get(i)
+            if (playlist && playlist.name === name) {
+                return true
+            }
+        }
+        return false
+    }
+
+    function selectPlaylistByName(name) {
+        for (let i = 0; i < mpv.playlists.count; ++i) {
+            const playlist = mpv.playlists.get(i)
+            if (playlist && playlist.name === name) {
+                mpv.playlists.visibleIndex = i
+                return
+            }
         }
     }
 
@@ -563,3 +624,4 @@ ApplicationWindow {
                 + (menuBar.visible ? menuBar.height : 0)
     }
 }
+
