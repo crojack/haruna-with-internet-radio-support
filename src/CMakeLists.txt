@@ -4,6 +4,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
+find_package(Qt6 REQUIRED COMPONENTS DBus)
+
+include(/opt/qt6/lib/cmake/Qt6DBus/Qt6DBusMacros.cmake)
+
 # DATA_ICONS is defined in data/CMakeLists.txt
 ecm_add_app_icon(ICONS_SRCS ICONS ${DATA_ICONS})
 
@@ -55,6 +59,7 @@ endif()
 
 add_subdirectory(framedecoder)
 add_subdirectory(playlist)
+add_subdirectory(radio)
 add_subdirectory(utilities)
 add_subdirectory(settings)
 add_subdirectory(youtube)
@@ -125,7 +130,21 @@ target_include_directories(haruna
         models
         mpv
         ${FFMPEG_INCLUDE_DIRS}
+        /opt/kf6/include/KF6/KFileMetaData
 )
+
+# In src/radio/CMakeLists.txt
+target_include_directories(radio
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        /opt/kf6/include/KF6/KFileMetaData
+)
+
+target_include_directories(playlist
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 
 target_compile_definitions(haruna PRIVATE $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:QT_QML_DEBUG>)
 
@@ -159,6 +178,7 @@ target_link_libraries(haruna PRIVATE
     utilitiesplugin
     settingsplugin
     youtubeplugin
+    radio
 )
 
 if (CMAKE_SYSTEM_NAME IN_LIST DBUS_PLATFORMS)
