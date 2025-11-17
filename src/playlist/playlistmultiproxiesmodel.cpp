@@ -5,6 +5,7 @@
  */
 
 #include "playlistmultiproxiesmodel.h"
+#include "playlistfilterproxymodel.h"
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -17,13 +18,16 @@
 #include "miscutils.h"
 #include "pathutils.h"
 #include "playlistrenamevalidator.h"
+#include "playlisttypes.h"
 
 using namespace Qt::StringLiterals;
 
 PlaylistMultiProxiesModel::PlaylistMultiProxiesModel(QObject *parent)
     : QAbstractListModel{parent}
 {
-    addPlaylist(QString(u"Default"_s), QUrl());
+    addPlaylist(QString(QStringLiteral("Default")), QUrl());
+    // Add Internet Radio playlist
+    addRadioPlaylist();
 
     QUrl cacheUrl = getPlaylistCacheUrl();
     if (cacheUrl.isEmpty()) {
@@ -55,7 +59,7 @@ PlaylistMultiProxiesModel::PlaylistMultiProxiesModel(QObject *parent)
             }
             QJsonObject playlist = value.toObject();
             QString playlistName = playlist.value(u"name").toString();
-            if (playlistName == u"Default"_s) {
+            if (playlistName == QStringLiteral("Default")) {
                 continue;
             }
             QUrl playlistUrl = getPlaylistUrl(playlistName);
@@ -212,7 +216,7 @@ void PlaylistMultiProxiesModel::removePlaylist(uint pIndex)
 {
     // Cannot and should not delete default
     QString playlistName = m_playlistFilterProxyModels[pIndex]->playlistModel()->m_playlistName;
-    if (playlistName == u"Default"_s) {
+    if (playlistName == QStringLiteral("Default")) {
         return;
     }
     // Removing the active (currently playing) tab
@@ -304,9 +308,9 @@ void PlaylistMultiProxiesModel::renamePlaylist(uint pIndex)
 
     QString tabName = m_playlistFilterProxyModels[pIndex]->playlistModel()->m_playlistName;
     auto playlistsPath = PathUtils::instance()->playlistsFolder();
-    QUrl url(playlistsPath + tabName + u".m3u"_s);
+    QUrl url(playlistsPath + tabName + QStringLiteral(".m3u"));
     if (url.scheme().isEmpty()) {
-        url.setScheme(u"file"_s);
+        url.setScheme(QStringLiteral("file"));
     }
     KFileItem item(url);
     auto renameDialog = new KIO::RenameFileDialog(KFileItemList({item}), nullptr);
@@ -371,7 +375,7 @@ QUrl PlaylistMultiProxiesModel::getPlaylistCacheUrl()
             return QUrl();
         }
         QJsonObject json;
-        json[u"name"] = u"Default"_s;
+        json[u"name"] = QStringLiteral("Default");
         json[u"isActive"] = QJsonValue(true);
         json[u"currentItem"] = double(0);
         QJsonDocument doc(json);
@@ -385,7 +389,7 @@ QUrl PlaylistMultiProxiesModel::getPlaylistCacheUrl()
 QUrl PlaylistMultiProxiesModel::getPlaylistUrl(QString playlistName)
 {
     auto playlistsPath = PathUtils::instance()->playlistsFolder();
-    auto filePath = playlistsPath.append(playlistName).append(u".m3u"_s);
+    auto filePath = playlistsPath.append(playlistName).append(QStringLiteral(".m3u"));
 
     QUrl url = QUrl::fromLocalFile(filePath);
     QFile playlistFile(url.toString(QUrl::PreferLocalFile));
@@ -442,5 +446,30 @@ void PlaylistMultiProxiesModel::savePlaylistCache()
     cacheFile.write(doc.toJson(QJsonDocument::Indented));
     cacheFile.close();
 }
+
+void PlaylistMultiProxiesModel::init()
+{
+    // Add Default playlist
+    addPlaylist(QStringLiteral("Default"), QUrl());
+
+    // Add Internet Radio playlist
+    addRadioPlaylist();
+
+    // Load other playlists...
+    // You can move the cache loading logic from the constructor here if needed
+}
+
+void PlaylistMultiProxiesModel::addRadioPlaylist()
+{
+    auto filterModel = std::make_unique<PlaylistFilterProxyModel>();
+    filterModel->playlistModel()->m_playlistName = QStringLiteral("Internet Radio");
+    filterModel->setPlaylistType(Playlist::PlaylistType::Radio);
+
+    beginInsertRows(QModelIndex(), m_playlistFilterProxyModels.size(),
+                    m_playlistFilterProxyModels.size());
+    m_playlistFilterProxyModels.push_back(std::move(filterModel));
+    endInsertRows();
+}
+
 
 #include "moc_playlistmultiproxiesmodel.cpp"

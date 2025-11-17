@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2020 George Florea Bănuș <georgefb899@gmail.com>
+ * SPDX-FileCopyrightText: 2020 George Florea BÄƒnuÈ™ <georgefb899@gmail.com>
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
@@ -20,6 +20,7 @@
 #include "generalsettings.h"
 #include "miscutils.h"
 #include "playlistsettings.h"
+#include "playlisttypes.h"
 #include "youtube.h"
 
 using namespace Qt::StringLiterals;
@@ -68,7 +69,7 @@ QVariant PlaylistModel::data(const QModelIndex &index, int role) const
     case TitleRole:
         return item.mediaTitle.isEmpty() ? QVariant(item.filename) : QVariant(item.mediaTitle);
     case PathRole:
-        return QVariant(item.url);
+        return QVariant(item.url.toString());
     case DurationRole:
         return QVariant(item.formattedDuration);
     case PlayingRole:
@@ -76,7 +77,7 @@ QVariant PlaylistModel::data(const QModelIndex &index, int role) const
     case FolderPathRole:
         return QVariant(item.folderPath);
     case IsLocalRole:
-        return QVariant(!item.url.scheme().startsWith(u"http"_s));
+        return QVariant(!item.url.scheme().startsWith(QStringLiteral("http")));
     }
 
     return QVariant();
@@ -120,10 +121,10 @@ void PlaylistModel::addItem(const QUrl &url, Behavior behavior)
         clear();
     }
 
-    if (url.scheme() == u"file"_s) {
+    if (url.scheme() == QStringLiteral("file")) {
         auto mimeType = MiscUtils::mimeType(url);
 
-        if (mimeType == u"audio/x-mpegurl"_s) {
+        if (mimeType == QStringLiteral("audio/x-mpegurl")) {
             m_playlistPath = url.toString();
             addM3uItems(url, behavior);
             return;
@@ -150,7 +151,7 @@ void PlaylistModel::addItem(const QUrl &url, Behavior behavior)
         }
     }
 
-    if (url.scheme() == u"http"_s || url.scheme() == u"https"_s) {
+    if (url.scheme() == QStringLiteral("http") || url.scheme() == QStringLiteral("https")) {
         if (youtube.isPlaylist(url)) {
             youtube.getPlaylist(url);
         } else {
@@ -185,12 +186,12 @@ void PlaylistModel::appendItem(const QUrl &url)
         item.filename = itemInfo.fileName();
         item.folderPath = itemInfo.absolutePath();
     } else {
-        if (url.scheme().startsWith(u"http"_s)) {
+        if (url.scheme().startsWith(QStringLiteral("http"))) {
             item.url = url;
             item.filename = url.toString();
             // causes issues with lots of links
             if (m_httpItemCounter < 20) {
-                QVariantMap data{{u"row"_s, QVariant::fromValue(row)}};
+                QVariantMap data{{QStringLiteral("row"), QVariant::fromValue(row)}};
                 youtube.getVideoInfo(url, data);
                 ++m_httpItemCounter;
             }
@@ -274,7 +275,7 @@ void PlaylistModel::getSiblingItems(const QUrl &url)
 
 void PlaylistModel::addM3uItems(const QUrl &url, Behavior behavior)
 {
-    if (url.scheme() != u"file"_s || MiscUtils::mimeType(url) != u"audio/x-mpegurl"_s) {
+    if (url.scheme() != QStringLiteral("file") || MiscUtils::mimeType(url) != QStringLiteral("audio/x-mpegurl")) {
         return;
     }
 
@@ -320,10 +321,10 @@ void PlaylistModel::addYouTubePlaylist(QJsonArray playlist, const QString &video
 {
     bool matchFound{false};
     for (int i = 0; i < playlist.size(); ++i) {
-        auto id = playlist[i][u"id"_s].toString();
-        auto url = u"https://www.youtube.com/watch?v=%1&list=%2"_s.arg(id, playlistId);
-        auto title = playlist[i][u"title"_s].toString();
-        auto duration = playlist[i][u"duration"_s].toDouble();
+        auto id = playlist[i][QStringLiteral("id")].toString();
+        auto url = QStringLiteral("https://www.youtube.com/watch?v=%1&list=%2").arg(id, playlistId);
+        auto title = playlist[i][QStringLiteral("title")].toString();
+        auto duration = playlist[i][QStringLiteral("duration")].toDouble();
 
         PlaylistItem item;
         item.url = QUrl::fromUserInput(url);
@@ -360,7 +361,7 @@ void PlaylistModel::addYouTubePlaylist(QJsonArray playlist, const QString &video
 
 void PlaylistModel::updateFileInfo(YTVideoInfo info, QVariantMap data)
 {
-    const auto row = data.value(u"row"_s).toUInt();
+    const auto row = data.value(QStringLiteral("row")).toUInt();
     const auto item{m_playlist[row]};
     if (info.url != item.url) {
         return;
@@ -379,10 +380,10 @@ void PlaylistModel::updateFileInfo(YTVideoInfo info, QVariantMap data)
 bool PlaylistModel::isVideoOrAudioMimeType(const QString &mimeType)
 {
     // clang-format off
-    return (mimeType.startsWith(u"video/"_s)
-            || mimeType.startsWith(u"audio/"_s)
-            || mimeType == u"application/vnd.rn-realmedia"_s)
-            && mimeType != u"audio/x-mpegurl"_s;
+    return (mimeType.startsWith(QStringLiteral("video/"))
+            || mimeType.startsWith(QStringLiteral("audio/"))
+            || mimeType == QStringLiteral("application/vnd.rn-realmedia"))
+            && mimeType != QStringLiteral("audio/x-mpegurl");
     // clang-format on
 }
 
@@ -411,7 +412,7 @@ void PlaylistModel::getMetaData(uint i, const QString &path)
         using namespace KFileMetaData;
 
         auto url = QUrl::fromUserInput(path);
-        if (url.scheme() != u"file"_s) {
+        if (url.scheme() != QStringLiteral("file")) {
             return;
         }
 
@@ -448,10 +449,10 @@ void PlaylistModel::onMetaDataReady(uint i, const QUrl &url, KFileMetaData::Prop
         Q_EMIT dataChanged(index(i, 0), index(i, 0));
     } else {
         qDebug() << "\n"
-                 << u"Data mismatch: the url at position %1 received from the threadpool:"_s.arg(i) << "\n"
-                 << u"%1"_s.arg(url.toString()) << "\n"
-                 << u"is different than the url in m_playlist at position %2"_s.arg(i) << "\n"
-                 << u"%1"_s.arg(m_playlist[i].url.toString());
+                 << QStringLiteral("Data mismatch: the url at position %1 received from the threadpool:").arg(i) << "\n"
+                 << QStringLiteral("%1").arg(url.toString()) << "\n"
+                 << QStringLiteral("is different than the url in m_playlist at position %2").arg(i) << "\n"
+                 << QStringLiteral("%1").arg(m_playlist[i].url.toString());
     }
 }
 

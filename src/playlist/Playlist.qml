@@ -19,6 +19,7 @@ import org.kde.haruna.playlist
 import org.kde.haruna.utilities
 import org.kde.haruna.settings
 import org.kde.haruna.youtube
+import org.kde.haruna.radio 1.0
 
 Page {
     id: root
@@ -28,9 +29,9 @@ Page {
     property bool isSmallWindowSize: Window.window.width < 600
     property int buttonSize: isSmallWindowSize ? Kirigami.Units.iconSizes.small : Kirigami.Units.iconSizes.smallMedium
     property alias scrollPositionTimer: scrollPositionTimer
-    property alias playlistView: playlistView
     property real customWidth: PlaylistSettings.playlistWidth
     property real fsScale: Window.window.isFullScreen() && PlaylistSettings.bigFontFullscreen ? 1.36 : 1
+    property int previousTabIndex: 0  // Track previous tab for cleanup
 
     width: limitWidth(customWidth) * fsScale
 
@@ -57,358 +58,6 @@ Page {
         }
     }
 
-    header: ToolBar {
-        id: toolbar
-
-        width: parent.width
-        visible: PlaylistSettings.showToolbar
-        height: visible ? implicitHeight : 0
-
-        bottomPadding: 0
-
-        ColumnLayout {
-            anchors.fill: parent
-            spacing: 0
-
-            Kirigami.ActionToolBar {
-                actions: [
-                    Kirigami.Action {
-                        text: i18nc("@action:button", "Search")
-                        icon.name: "search"
-                        icon.width: root.buttonSize
-                        icon.height: root.buttonSize
-                        displayHint: Kirigami.DisplayHint.IconOnly
-                        displayComponent: Kirigami.SearchField {
-                            id: searchComponent
-                            delaySearch: true
-
-                            onTextChanged: {
-                                root.m_mpv.visibleFilterProxyModel.searchText = text
-                                playlistView.positionViewAtIndex(0, ListView.Beginning)
-                            }
-
-                            Component.onCompleted: {
-                                text = root.m_mpv.visibleFilterProxyModel.searchText
-                            }
-                        }
-                    },
-                    Kirigami.Action {
-                        text: i18nc("@action:button", "Add…")
-                        displayHint: root.isSmallWindowSize
-                                     ? Kirigami.DisplayHint.IconOnly
-                                     : Kirigami.DisplayHint.NoPreference
-                        icon.name: "list-add"
-                        icon.width: root.buttonSize
-                        icon.height: root.buttonSize
-                        Kirigami.Action {
-                            text: i18nc("@action:button", "Files")
-                            onTriggered: {
-                                fileDialog.fileType = "video"
-                                fileDialog.fileMode = FileDialog.OpenFiles
-                                fileDialog.open()
-                            }
-                        }
-                        Kirigami.Action {
-                            text: i18nc("@action:button", "URL")
-                            onTriggered: {
-                                if (addUrlPopup.opened) {
-                                    addUrlPopup.close()
-                                } else {
-                                    addUrlPopup.open()
-                                }
-                            }
-                        }
-                        Kirigami.Action {
-                            text: i18nc("@action:button", "Playlist")
-                            onTriggered: {
-                                fileDialog.fileType = "playlist"
-                                fileDialog.fileMode = FileDialog.OpenFile
-                                fileDialog.open()
-                            }
-                        }
-                    },
-                    Kirigami.Action {
-                        text: i18nc("@action:button", "Sort")
-                        displayHint: root.isSmallWindowSize
-                                     ? Kirigami.DisplayHint.IconOnly
-                                     : Kirigami.DisplayHint.NoPreference
-                        icon.name: "view-sort"
-                        icon.width: root.buttonSize
-                        icon.height: root.buttonSize
-
-                        Kirigami.Action {
-                            text: i18nc("@action:button", "Name, ascending")
-                            onTriggered: {
-                                root.m_mpv.visibleFilterProxyModel.sortItems(PlaylistSortProxyModel.NameAscending)
-                            }
-                        }
-                        Kirigami.Action {
-                            text: i18nc("@action:button", "Name, descending")
-                            onTriggered: {
-                                root.m_mpv.visibleFilterProxyModel.sortItems(PlaylistSortProxyModel.NameDescending)
-                            }
-                        }
-                        Kirigami.Action {
-                            text: i18nc("@action:button", "Duration, ascending")
-                            onTriggered: {
-                                root.m_mpv.visibleFilterProxyModel.sortItems(PlaylistSortProxyModel.DurationAscending)
-                            }
-                        }
-                        Kirigami.Action {
-                            text: i18nc("@action:button", "Duration, descending")
-                            onTriggered: {
-                                root.m_mpv.visibleFilterProxyModel.sortItems(PlaylistSortProxyModel.DurationDescending)
-                            }
-                        }
-                    },
-                    Kirigami.Action {
-                        text: i18nc("@action:button", "Playback")
-                        icon.name: "media-playback-start"
-                        icon.width: root.buttonSize
-                        icon.height: root.buttonSize
-                        displayHint: Kirigami.DisplayHint.KeepVisible
-                        Kirigami.Action {
-                            text: i18nc("@action:button", "Repeat playlist")
-                            icon.name: "media-playlist-repeat"
-                            autoExclusive: true
-                            checkable: true
-                            checked: PlaylistSettings.playbackBehavior === "RepeatPlaylist"
-                            onTriggered: {
-                                PlaylistSettings.playbackBehavior = "RepeatPlaylist"
-                                PlaylistSettings.save()
-                            }
-                        }
-                        Kirigami.Action {
-                            text: i18nc("@action:button", "Stop after last item")
-                            autoExclusive: true
-                            checkable: true
-                            checked: PlaylistSettings.playbackBehavior === "StopAfterLast"
-                            onTriggered: {
-                                PlaylistSettings.playbackBehavior = "StopAfterLast"
-                                PlaylistSettings.save()
-                            }
-                        }
-                        Kirigami.Action {
-                            text: i18nc("@action:button", "Repeat item")
-                            autoExclusive: true
-                            checkable: true
-                            checked: PlaylistSettings.playbackBehavior === "RepeatItem"
-                            icon.name: "media-playlist-repeat-song"
-                            onTriggered: {
-                                PlaylistSettings.playbackBehavior = "RepeatItem"
-                                PlaylistSettings.save()
-                            }
-                        }
-                        Kirigami.Action {
-                            text: i18nc("@action:button", "Stop after item")
-                            autoExclusive: true
-                            checkable: true
-                            checked: PlaylistSettings.playbackBehavior === "StopAfterItem"
-                            onTriggered: {
-                                PlaylistSettings.playbackBehavior = "StopAfterItem"
-                                PlaylistSettings.save()
-                            }
-                        }
-                        Kirigami.Action {
-                            text: i18nc("@action:button", "Random Playback")
-                            checkable: true
-                            enabled: ["StopAfterLast", "RepeatPlaylist"].includes(PlaylistSettings.playbackBehavior)
-                            checked: PlaylistSettings.randomPlayback
-                            icon.name: "randomize"
-                            onTriggered: {
-                                PlaylistSettings.randomPlayback = checked
-                                PlaylistSettings.save()
-                            }
-                        }
-                    },
-                    Kirigami.Action {
-                        text: i18nc("@action:button", "Clear")
-                        icon.name: "edit-clear-all"
-                        displayHint: Kirigami.DisplayHint.AlwaysHide
-                        onTriggered: {
-                            root.m_mpv.visibleFilterProxyModel.clear()
-                        }
-                    },
-                    Kirigami.Action {
-                        text: i18nc("@action:button", "Save As")
-                        icon.name: "document-save-as"
-                        displayHint: Kirigami.DisplayHint.AlwaysHide
-                        onTriggered: {
-                            fileDialog.fileType = "playlist"
-                            fileDialog.fileMode = FileDialog.SaveFile
-                            fileDialog.open()
-                        }
-                    }
-                ]
-            }
-
-            RowLayout {
-            TabBar {
-                id: playlistTabView
-
-                Layout.alignment: Qt.AlignLeft | Qt.AlignBottom
-                Layout.fillWidth: true
-                clip: true
-
-                onCurrentIndexChanged: {
-                    root.m_mpv.playlists.visibleIndex = currentIndex
-                }
-
-                Repeater {
-                    model: root.m_mpv.playlists
-                    delegate: PlaylistTabDelegate {
-                        m_mpv: root.m_mpv
-                    }
-                }
-
-                function openContextMenu(tab) {
-                    tab = tab as PlaylistTabDelegate
-                    if (!tab) {
-                        return
-                    }
-                    tabMenuLoader.open(tab)
-                }
-
-                // Magic number 3: tabMenuLoader has 3 default items
-                // Playlist is placed below them, so we have to offset this by 3
-                function movePlaylistItem(from, to) {
-                    moveItem(from, to)
-                    var contextMenu = tabMenuLoader.item as Menu
-
-                    if (!contextMenu) {
-                        return
-                    }
-
-                    if (contextMenu.count > 3) {
-                        contextMenu.moveItem(from + 3, to + 3)
-                    }
-                }
-
-                // This connection is only necessary for the startup. If the last played item is inside
-                // an internal tab, then the TabBar should set its current index to that tab.
-                Connections {
-                    target: root.m_mpv.playlists
-                    function onVisibleIndexChanged() {
-                        playlistTabView.currentIndex = root.m_mpv.playlists.visibleIndex
-                    }
-                }
-                }
-                ToolButton {
-                    icon.name: "list-add"
-                    onClicked: {
-                        if (addPlaylistPopup.opened) {
-                            addPlaylistPopup.close()
-                        } else {
-                            addPlaylistPopup.open()
-                        }
-                    }
-
-                    ToolTip {
-                        text: i18nc("@action:button", "Add new playlist")
-                    }
-                }
-            }
-
-            Loader {
-                id: tabMenuLoader
-
-                property int row: -1
-
-                active: true
-                asynchronous: false
-                sourceComponent: Menu {
-                    id: tabMenu
-                    MenuItem {
-                        text: i18nc("@action:inmenu", "Rename")
-                        icon.name: "edit-rename"
-                        visible: tabMenuLoader.row > 0
-                        onClicked: root.m_mpv.playlists.renamePlaylist(tabMenuLoader.row)
-                    }
-                    MenuItem {
-                        text: i18nc("@action:inmenu", "Remove")
-                        icon.name: "remove"
-                        visible: tabMenuLoader.row > 0
-                        onClicked: root.m_mpv.playlists.removePlaylist(tabMenuLoader.row)
-                    }
-
-                    MenuSeparator {
-                        visible: tabMenuLoader.row > 0
-                    }
-
-                    // Playlists
-                    Instantiator {
-                        model: root.m_mpv.playlists
-                        delegate: MenuItem {
-                            required property int index
-                            required property string name
-                            required property bool isVisible
-                            required property bool isActive
-
-                            text: name
-                            icon.name: isVisible ? "draw-circle" : ""
-                            onClicked: playlistTabView.setCurrentIndex(index)
-                        }
-                        onObjectAdded: (index, object) => tabMenu.insertItem(index + 3, object)
-                        onObjectRemoved: (index, object) => tabMenu.removeItem(object)
-                    }
-                }
-
-                function open(tab) : void {
-                    if (!tabMenuLoader.active) {
-                        tabMenuLoader.active = true
-                        tabMenuLoader.loaded.connect(function() {
-                            tabMenuLoader.open(tab)
-                        })
-                        return
-                    }
-
-                    if (!tab) {
-                        return
-                    }
-
-                    tabMenuLoader.row = tab.index
-
-                    const contextMenu = tabMenuLoader.item as Menu
-                    contextMenu.popup()
-                }
-            }
-        }
-    }
-
-    InputPopup {
-        id: addUrlPopup
-
-        x: Kirigami.Units.largeSpacing
-        y: Kirigami.Units.largeSpacing
-        width: toolbar.width - Kirigami.Units.largeSpacing * 2
-        buttonText: i18nc("@action:button", "Add")
-        warningText: youtube.hasYoutubeDl()
-                     ? ""
-                     : i18nc("@info", "Neither <a href=\"https://github.com/yt-dlp/yt-dlp\">yt-dlp</a> nor <a href=\"https://github.com/ytdl-org/youtube-dl\">youtube-dl</a> was found.")
-
-        onSubmitted: function(url) {
-            root.m_mpv.visibleFilterProxyModel.addItem(url, PlaylistModel.Append)
-        }
-
-        YouTube {
-            id: youtube
-        }
-    }
-
-    InputPopup {
-        id: addPlaylistPopup
-
-        x: Kirigami.Units.largeSpacing
-        y: Kirigami.Units.largeSpacing
-        width: toolbar.width - Kirigami.Units.largeSpacing * 2
-        placeholderText: i18nc("@placeholder", "playlist name")
-        buttonText: i18nc("@action:button", "Add")
-
-        onSubmitted: function(plName) {
-            root.m_mpv.playlists.createNewPlaylist(plName)
-        }
-    }
-
     component ResizeHandler: Item {
         MouseArea {
             anchors.fill: parent
@@ -430,7 +79,7 @@ Page {
                     let mX = root.m_mpv.mapFromItem(this, mouseX, mouseY).x
                     var w = root.limitWidth(Window.window.width - mX)
                 } else {
-                    let mX = playlistView.mapFromItem(this, mouseX, mouseY).x
+                    let mX = playlistContentItem.mapFromItem(this, mouseX, mouseY).x
                     var w = root.limitWidth(mX)
                 }
                 root.customWidth = w / root.fsScale
@@ -444,326 +93,522 @@ Page {
     }
 
     Rectangle {
-        Rectangle {
-            id: playlistEdgeBorder
+        id: playlistEdgeBorder
 
-            x: PlaylistSettings.position === "right" ? 0 : parent.width - width
-            y: -root.implicitHeaderHeight
-            z: 30
-            width: 1
-            height: root.height
-            color: Kirigami.Theme.backgroundColor
+        x: PlaylistSettings.position === "left"
+                ? parent.width - width
+                : 0
+        y: 0
+        z: 30
+        width: 1
+        height: root.height
+        color: Kirigami.Theme.backgroundColor
+
+        ResizeHandler {
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: 8
+            height: parent.height
+        }
+
+        Rectangle {
+            id: dragHandle
+
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.verticalCenter: parent.verticalCenter
+            width: 5
+            height: 50
+            color: Kirigami.Theme.alternateBackgroundColor
+            radius: Kirigami.Units.cornerRadius
+            border {
+                width: 1
+                color: Kirigami.Theme.backgroundColor
+            }
 
             ResizeHandler {
                 anchors.horizontalCenter: parent.horizontalCenter
-                width: 8
+                width: 18
                 height: parent.height
             }
-
-            Rectangle {
-                id: dragHandle
-
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.verticalCenter: parent.verticalCenter
-                width: 5
-                height: 50
-                color: Kirigami.Theme.alternateBackgroundColor
-                radius: Kirigami.Units.cornerRadius
-                border {
-                    width: 1
-                    color: Kirigami.Theme.backgroundColor
-                }
-
-                ResizeHandler {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: 18
-                    height: parent.height
-                }
-            }
         }
+    }
 
+    // Background blur effect
+    ShaderEffectSource {
+        id: shaderEffect
+
+        visible: PlaylistSettings.overlayVideo
         anchors.fill: parent
-        color: Kirigami.Theme.backgroundColor
+        anchors {
+            leftMargin: playlistEdgeBorder.width
+            rightMargin: playlistEdgeBorder.width
+        }
+        sourceItem: root.m_mpv
+        sourceRect: {
+            if (PlaylistSettings.position === "right") {
+                return Qt.rect(
+                    root.x,
+                    root.m_mpv.y,
+                    root.width,
+                    root.height
+                    )
+            }
+            else {
+                return Qt.rect(
+                    root.x,
+                    0,
+                    root.width,
+                    root.height
+                    )
+            }
+        }
+        z: 5
+    }
 
-        DropArea {
-            id: playlistDropArea
+    FastBlur {
+        id: blurEffect
+        
+        visible: PlaylistSettings.overlayVideo
+        anchors.fill: shaderEffect
+        radius: 100
+        source: shaderEffect
+        z: 10
+    }
 
-            anchors.fill: playlistScrollView
-            keys: ["text/uri-list"]
+    Rectangle {
+        id: mainContentRect
+        
+        anchors.fill: parent
+        anchors {
+            leftMargin: playlistEdgeBorder.width
+            rightMargin: playlistEdgeBorder.width
+        }
+        color: PlaylistSettings.overlayVideo 
+               ? "transparent" 
+               : Kirigami.Theme.backgroundColor
+        z: 20
 
-            onDropped: drop => {
-                if (!containsDrag) {
-                    return
+        ColumnLayout {
+            id: mainLayout
+            anchors.fill: parent
+            spacing: 0
+
+            // Tabs - Always visible
+            TabBar {
+                id: playlistTabView
+
+                Layout.fillWidth: true
+                Layout.preferredHeight: 40
+
+                background: Rectangle {
+                    color: PlaylistSettings.overlayVideo
+                           ? Qt.rgba(Kirigami.Theme.backgroundColor.r,
+                                    Kirigami.Theme.backgroundColor.g,
+                                    Kirigami.Theme.backgroundColor.b, 0.3)
+                           : Kirigami.Theme.backgroundColor
                 }
-                root.m_mpv.visibleFilterProxyModel.addFilesAndFolders(drop.urls, PlaylistModel.Append)
+
+                onCurrentIndexChanged: {
+                    console.log("=== TabBar currentIndex CHANGED to:", currentIndex)
+                    console.log("Previous tab index:", root.previousTabIndex)
+                    
+                    // Handle switching FROM Internet Radio tab (index 1) TO Videos And Music tab (index 0)
+                    if (root.previousTabIndex === 1 && currentIndex === 0) {
+                        console.log("Switching from Internet Radio to Videos And Music")
+                        // Stop playback
+                        root.m_mpv.pause = true
+                        // Clear the default playlist to remove any radio stations
+                        root.m_mpv.defaultFilterProxyModel.clear()
+                        console.log("Stopped radio playback and cleared Videos And Music playlist")
+                    }
+                    
+                    // Handle switching FROM Videos And Music tab (index 0) TO Internet Radio tab (index 1)
+                    if (root.previousTabIndex === 0 && currentIndex === 1) {
+                        console.log("Switching from Videos And Music to Internet Radio")
+                        // Stop playback
+                        root.m_mpv.pause = true
+                        console.log("Stopped video/audio playback")
+                    }
+                    
+                    // Update the visible index
+                    console.log("Setting playlists.visibleIndex to:", currentIndex)
+                    root.m_mpv.playlists.visibleIndex = currentIndex
+                    console.log("playlists.visibleIndex now:", root.m_mpv.playlists.visibleIndex)
+                    
+                    // Store current index as previous for next change
+                    root.previousTabIndex = currentIndex
+                }
+
+                Repeater {
+                    model: root.m_mpv.playlists
+                    delegate: PlaylistTabDelegate {
+                        m_mpv: root.m_mpv
+                    }
+                }
+
+                function openContextMenu(tab) {
+                    tab = tab as PlaylistTabDelegate
+                    if (!tab) {
+                        return
+                    }
+                    tabMenuLoader.open(tab)
+                }
+
+                function movePlaylistItem(from, to) {
+                    moveItem(from, to)
+                    var contextMenu = tabMenuLoader.item as Menu
+
+                    if (!contextMenu) {
+                        return
+                    }
+
+                    if (contextMenu.count > 3) {
+                        contextMenu.moveItem(from + 3, to + 3)
+                    }
+                }
+
+                Connections {
+                    target: root.m_mpv.playlists
+                    function onVisibleIndexChanged() {
+                        playlistTabView.currentIndex = root.m_mpv.playlists.visibleIndex
+                    }
+                }
+            }
+
+            // Content area - switches between Default and Radio
+            Item {
+                id: playlistContentItem
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                DropArea {
+                    id: playlistDropArea
+
+                    anchors.fill: parent
+                    keys: ["text/uri-list"]
+
+                    onDropped: drop => {
+                        if (!containsDrag) {
+                            return
+                        }
+                        root.m_mpv.visibleFilterProxyModel.addFilesAndFolders(drop.urls, PlaylistModel.Append)
+                    }
+                }
+
+                Loader {
+                    id: playlistLoader
+                    anchors.fill: parent
+                    sourceComponent: isRadioTab ? radioComponent : playlistComponent
+
+                    property bool isRadioTab: {
+                        if (!root.m_mpv || !root.m_mpv.visibleFilterProxyModel) {
+                            return false
+                        }
+                        return root.m_mpv.visibleFilterProxyModel.playlistName === "Internet Radio"
+                    }
+
+                    function getPlaylistView() {
+                        return playlistLoader.item
+                    }
+                }
+
+                Component {
+                    id: radioComponent
+                    RadioStationsList {
+                        radioModel: root.m_mpv.radioStationsModel
+                        mpv: root.m_mpv
+                    }
+                }
+
+                Component {
+                    id: playlistComponent
+                    DefaultPlaylist {
+                        filterProxyModel: root.m_mpv.visibleFilterProxyModel
+                        mpv: root.m_mpv
+                        contextMenuLoader: contextMenuLoader
+                    }
+                }
+            }
+        }
+    }
+
+    Loader {
+        id: tabMenuLoader
+
+        property int row: -1
+
+        active: true
+        asynchronous: false
+        sourceComponent: Menu {
+            id: tabMenu
+            MenuItem {
+                text: i18nc("@action:inmenu", "Rename")
+                visible: tabMenuLoader.row > 0
+                onClicked: root.m_mpv.playlists.renamePlaylist(tabMenuLoader.row)
+            }
+            MenuItem {
+                text: i18nc("@action:inmenu", "Remove")
+                visible: tabMenuLoader.row > 0
+                onClicked: root.m_mpv.playlists.removePlaylist(tabMenuLoader.row)
+            }
+
+            MenuSeparator {
+                visible: tabMenuLoader.row > 0
+            }
+
+            Instantiator {
+                model: root.m_mpv.playlists
+                delegate: MenuItem {
+                    required property int index
+                    required property string name
+                    required property bool isVisible
+                    required property bool isActive
+
+                    text: name
+                    onClicked: root.m_mpv.playlists.visibleIndex = index
+                }
+                onObjectAdded: function (index, object) {
+                    tabMenu.insertItem(index + 3, object)
+                }
+                onObjectRemoved: function (index, object) {
+                    tabMenu.removeItem(object)
+                }
             }
         }
 
-        ScrollView {
-            id: playlistScrollView
+        function open(tab) {
+            const theTab = tab as PlaylistTabDelegate
+            if (!theTab) {
+                return
+            }
+            row = theTab.index
+            const menu = item as Menu
+            menu.popup()
+        }
+    }
 
-            z: 20
-            anchors.fill: parent
-            anchors {
-                leftMargin: playlistEdgeBorder.width
-                rightMargin: playlistEdgeBorder.width
+    Loader {
+        id: contextMenuLoader
+
+        property int row: -1
+        property bool isLocal: false
+
+        active: false
+        asynchronous: true
+        sourceComponent: Menu {
+
+            MenuItem {
+                text: i18nc("@action:inmenu", "Open Containing Folder")
+                visible: contextMenuLoader.isLocal && contextMenuLoader.row != -1
+                onClicked: root.m_mpv.visibleFilterProxyModel.highlightInFileManager(contextMenuLoader.row)
+            }
+            MenuItem {
+                text: i18nc("@action:inmenu", "Open in Browser")
+                visible: !contextMenuLoader.isLocal && contextMenuLoader.row != -1
+                onClicked: {
+                    const modelIndex = root.m_mpv.visibleFilterProxyModel.index(contextMenuLoader.row, 0)
+                    Qt.openUrlExternally(modelIndex.data(PlaylistModel.PathRole))
+                }
+            }
+            MenuItem {
+                text: i18nc("@action:inmenu", "Copy Name")
+                onClicked: root.m_mpv.visibleFilterProxyModel.copyFileName(contextMenuLoader.row)
+                visible: contextMenuLoader.row != -1
+            }
+            MenuItem {
+                text: contextMenuLoader.isLocal
+                      ? i18nc("@action:inmenu", "Copy Path")
+                      : i18nc("@action:inmenu", "Copy URL")
+                onClicked: root.m_mpv.visibleFilterProxyModel.copyFilePath(contextMenuLoader.row)
+                visible: contextMenuLoader.row != -1
+            }
+            MenuSeparator {
+                visible: contextMenuLoader.row != -1
             }
 
-            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-
-            ListView {
-                id: playlistView
-
-                // set bottomMargin so that the footer doesn't block playlist items
-                bottomMargin: GeneralSettings.footerStyle === "default" ? 0 : 100
-
-                model: root.m_mpv.visibleFilterProxyModel
-                onModelChanged: {
-                    Qt.callLater(root.m_mpv.visibleFilterProxyModel.refreshData)
+            MenuItem {
+                text: i18nc("@action:inmenu", "Select All")
+                onClicked: root.m_mpv.visibleFilterProxyModel.selectItem(0, PlaylistFilterProxyModel.All)
+            }
+            MenuItem {
+                text: i18nc("@action:inmenu", "Deselect All")
+                onClicked: root.m_mpv.visibleFilterProxyModel.selectItem(0, PlaylistFilterProxyModel.Clear)
+            }
+            MenuItem {
+                text: i18nc("@action:inmenu", "Invert Selection")
+                onClicked: root.m_mpv.visibleFilterProxyModel.selectItem(0, PlaylistFilterProxyModel.Invert)
+            }
+            MenuSeparator {
+            }
+            MenuItem {
+                text: i18nc("@action:inmenu", "Remove From Playlist")
+                visible: root.m_mpv.visibleFilterProxyModel.selectionCount > 1 && contextMenuLoader.row != -1
+                onClicked: root.m_mpv.visibleFilterProxyModel.removeItems()
+            }
+            MenuItem {
+                text: i18nc("@action:inmenu", "Remove From Playlist")
+                visible: root.m_mpv.visibleFilterProxyModel.selectionCount === 1 && contextMenuLoader.row != -1
+                onClicked: root.m_mpv.visibleFilterProxyModel.removeItem(contextMenuLoader.row)
+            }
+            MenuItem {
+                text: i18nc("@action:inmenu", "Rename")
+                visible: contextMenuLoader.isLocal && contextMenuLoader.row != -1
+                onClicked: root.m_mpv.visibleFilterProxyModel.renameFile(contextMenuLoader.row)
+            }
+            MenuItem {
+                text: i18nc("@action:inmenu", "Scroll to Playing Item")
+                onClicked: {
+                    const index = root.m_mpv.visibleFilterProxyModel.getPlayingItem()
+                    playlistLoader.item?.positionViewAtIndex(index, ListView.Beginning)
                 }
+            }
+            MenuSeparator {
+                visible: contextMenuLoader.isLocal && contextMenuLoader.row != -1
+            }
+            MenuItem {
+                text: i18nc("@action:inmenu", "Move File to Trash")
+                visible: contextMenuLoader.isLocal && root.m_mpv.visibleFilterProxyModel.selectionCount === 1 && contextMenuLoader.row != -1
+                onClicked: root.m_mpv.visibleFilterProxyModel.trashFile(contextMenuLoader.row)
+            }
+            MenuItem {
+                text: i18nc("@action:inmenu", "Move Selected Files to Trash")
+                visible: contextMenuLoader.isLocal && root.m_mpv.visibleFilterProxyModel.selectionCount > 1 && contextMenuLoader.row != -1
+                onClicked: root.m_mpv.visibleFilterProxyModel.trashFiles()
+            }
+        }
 
-                reuseItems: true
-                spacing: 1
-                currentIndex: root.m_mpv.visibleFilterProxyModel.getPlayingItem()
+        function open(item: PlaylistItemDelegate) : void {
+            if (!contextMenuLoader.active) {
+                contextMenuLoader.active = true
+                contextMenuLoader.loaded.connect(function() {
+                    contextMenuLoader.open(item)
+                })
+                return
+            }
 
-                displaced: Transition {
-                    NumberAnimation {
-                        properties: "y"
-                        duration: Kirigami.Units.shortDuration
+            if (item) {
+                contextMenuLoader.row = item.index
+                contextMenuLoader.isLocal = item.isLocal
+            }
+            else {
+                contextMenuLoader.row = -1
+            }
+
+            const contextMenu = contextMenuLoader.item as Menu
+            contextMenu.popup()
+        }
+    }
+
+    Timer {
+        id: scrollPositionTimer
+
+        interval: 100
+        running: false
+        repeat: false
+
+        onTriggered: {
+            playlistLoader.item?.positionViewAtIndex(root.m_mpv.visibleFilterProxyModel.playingVideo, ListView.Beginning)
+        }
+    }
+
+    Popup {
+        id: addPlaylistPopup
+
+        x: parent.width / 2 - width / 2
+        y: parent.height / 2 - height / 2
+        width: 300
+        modal: true
+        focus: true
+
+        onVisibleChanged: {
+            if (visible) {
+                playlistName.text = ""
+                playlistName.forceActiveFocus()
+            }
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            Label {
+                text: i18nc("@label:textbox", "New playlist name:")
+                Layout.fillWidth: true
+            }
+            TextField {
+                id: playlistName
+                Layout.fillWidth: true
+                placeholderText: i18nc("@info:placeholder", "Enter name")
+                onAccepted: {
+                    if (text.trim() !== "") {
+                        root.m_mpv.playlists.createNewPlaylist(text.trim())
+                        addPlaylistPopup.close()
                     }
                 }
-
-                delegate: {
-                    switch (PlaylistSettings.style) {
-                    case "default":
-                        playlistItemSimple
-                        break
-                    case "withThumbnails":
-                        playlistItemWithThumbnail
-                        break
-                    case "compact":
-                        playlistItemCompact
-                        break
-                    }
+            }
+            RowLayout {
+                Button {
+                    text: i18nc("@action:button", "Cancel")
+                    onClicked: addPlaylistPopup.close()
                 }
-
-                MouseArea {
-                    z: -1
-                    anchors.fill: playlistView
-                    acceptedButtons: Qt.MiddleButton | Qt.RightButton
-                    onClicked: function(mouse) {
-                        switch (mouse.button) {
-                        case Qt.MiddleButton:
-                            const index = root.m_mpv.visibleFilterProxyModel.getPlayingItem()
-                            playlistView.positionViewAtIndex(index, ListView.Beginning)
-                            break
-                        case Qt.RightButton:
-                            // Open the menu just to present options like selection
-                            contextMenuLoader.open(null)
-                            break
+                Button {
+                    text: i18nc("@action:button", "Add")
+                    onClicked: {
+                        if (playlistName.text.trim() !== "") {
+                            root.m_mpv.playlists.createNewPlaylist(playlistName.text.trim())
+                            addPlaylistPopup.close()
                         }
                     }
                 }
+            }
+        }
+    }
 
-                function openContextMenu(item) {
-                    item = item as PlaylistItemDelegate
-                    if (!item) {
-                        return
-                    }
-                    contextMenuLoader.open(item)
-                }
+    Popup {
+        id: addUrlPopup
+
+        x: parent.width / 2 - width / 2
+        y: parent.height / 2 - height / 2
+        width: 400
+        modal: true
+        focus: true
+
+        onVisibleChanged: {
+            if (visible) {
+                urlField.text = ""
+                urlField.forceActiveFocus()
             }
         }
 
-        Loader {
-            id: contextMenuLoader
-
-            property int row: -1
-            property bool isLocal: false
-
-            active: false
-            asynchronous: true
-            sourceComponent: Menu {
-
-                MenuItem {
-                    text: i18nc("@action:inmenu", "Open Containing Folder")
-                    icon.name: "folder"
-                    visible: contextMenuLoader.isLocal && contextMenuLoader.row != -1
-                    onClicked: root.m_mpv.visibleFilterProxyModel.highlightInFileManager(contextMenuLoader.row)
+        ColumnLayout {
+            anchors.fill: parent
+            Label {
+                text: i18nc("@label:textbox", "URL or path:")
+                Layout.fillWidth: true
+            }
+            TextField {
+                id: urlField
+                Layout.fillWidth: true
+                placeholderText: i18nc("@info:placeholder", "Enter URL or file path")
+                onAccepted: {
+                    if (text.trim() !== "") {
+                        root.m_mpv.visibleFilterProxyModel.addItem(text.trim(), PlaylistModel.Append)
+                        addUrlPopup.close()
+                    }
                 }
-                MenuItem {
-                    text: i18nc("@action:inmenu", "Open in Browser")
-                    icon.name: "link"
-                    visible: !contextMenuLoader.isLocal && contextMenuLoader.row != -1
+            }
+            RowLayout {
+                Button {
+                    text: i18nc("@action:button", "Cancel")
+                    onClicked: addUrlPopup.close()
+                }
+                Button {
+                    text: i18nc("@action:button", "Add")
                     onClicked: {
-                        const modelIndex = root.m_mpv.visibleFilterProxyModel.index(contextMenuLoader.row, 0)
-                        Qt.openUrlExternally(modelIndex.data(PlaylistModel.PathRole))
+                        if (urlField.text.trim() !== "") {
+                            root.m_mpv.visibleFilterProxyModel.addItem(urlField.text.trim(), PlaylistModel.Append)
+                            addUrlPopup.close()
+                        }
                     }
                 }
-                MenuItem {
-                    text: i18nc("@action:inmenu", "Copy Name")
-                    onClicked: root.m_mpv.visibleFilterProxyModel.copyFileName(contextMenuLoader.row)
-                    visible: contextMenuLoader.row != -1
-                }
-                MenuItem {
-                    text: contextMenuLoader.isLocal
-                          ? i18nc("@action:inmenu", "Copy Path")
-                          : i18nc("@action:inmenu", "Copy URL")
-                    onClicked: root.m_mpv.visibleFilterProxyModel.copyFilePath(contextMenuLoader.row)
-                    visible: contextMenuLoader.row != -1
-                }
-                MenuSeparator {
-                    visible: contextMenuLoader.row != -1
-                }
-
-                // Selection manipulators
-                MenuItem {
-                    text: i18nc("@action:inmenu", "Select All")
-                    onClicked: root.m_mpv.visibleFilterProxyModel.selectItem(0, PlaylistFilterProxyModel.All)
-                }
-                MenuItem {
-                    text: i18nc("@action:inmenu", "Deselect All")
-                    onClicked: root.m_mpv.visibleFilterProxyModel.selectItem(0, PlaylistFilterProxyModel.Clear)
-                }
-                MenuItem {
-                    text: i18nc("@action:inmenu", "Invert Selection")
-                    onClicked: root.m_mpv.visibleFilterProxyModel.selectItem(0, PlaylistFilterProxyModel.Invert)
-                }
-                MenuSeparator {
-                }
-                MenuItem {
-                    text: i18nc("@action:inmenu", "Remove from Playlist")
-                    icon.name: "remove"
-                    onClicked: root.m_mpv.visibleFilterProxyModel.removeItem(contextMenuLoader.row)
-                    visible: root.m_mpv.visibleFilterProxyModel.selectionCount === 1 && contextMenuLoader.row != -1
-                }
-                MenuItem {
-                    text: i18nc("@action:inmenu", "Remove Selected from Playlist")
-                    icon.name: "remove"
-                    onClicked: root.m_mpv.visibleFilterProxyModel.removeItems()
-                    visible: root.m_mpv.visibleFilterProxyModel.selectionCount > 1 && contextMenuLoader.row != -1
-                }
-                MenuItem {
-                    text: i18nc("@action:inmenu", "Rename")
-                    icon.name: "edit-rename"
-                    visible: contextMenuLoader.isLocal && contextMenuLoader.row != -1
-                    onClicked: root.m_mpv.visibleFilterProxyModel.renameFile(contextMenuLoader.row)
-                }
-                MenuItem {
-                    text: i18nc("@action:inmenu", "Scroll to Playing Item")
-                    onClicked: {
-                        const index = root.m_mpv.visibleFilterProxyModel.getPlayingItem()
-                        playlistView.positionViewAtIndex(index, ListView.Beginning)
-                    }
-                }
-                MenuSeparator {
-                    visible: contextMenuLoader.isLocal && contextMenuLoader.row != -1
-                }
-                MenuItem {
-                    text: i18nc("@action:inmenu", "Move File to Trash")
-                    icon.name: "delete"
-                    visible: contextMenuLoader.isLocal && root.m_mpv.visibleFilterProxyModel.selectionCount === 1 && contextMenuLoader.row != -1
-                    onClicked: root.m_mpv.visibleFilterProxyModel.trashFile(contextMenuLoader.row)
-                }
-                MenuItem {
-                    text: i18nc("@action:inmenu", "Move Selected Files to Trash")
-                    icon.name: "delete"
-                    visible: contextMenuLoader.isLocal && root.m_mpv.visibleFilterProxyModel.selectionCount > 1 && contextMenuLoader.row != -1
-                    onClicked: root.m_mpv.visibleFilterProxyModel.trashFiles()
-                }
             }
-
-            function open(item: PlaylistItemDelegate) : void {
-                if (!contextMenuLoader.active) {
-                    contextMenuLoader.active = true
-                    contextMenuLoader.loaded.connect(function() {
-                        contextMenuLoader.open(item)
-                    })
-                    return
-                }
-
-                if (item) {
-                    contextMenuLoader.row = item.index
-                    contextMenuLoader.isLocal = item.isLocal
-                }
-                else {
-                    contextMenuLoader.row = -1
-                }
-
-                const contextMenu = contextMenuLoader.item as Menu
-                contextMenu.popup()
-            }
-        }
-
-        Component {
-            id: playlistItemWithThumbnail
-            PlaylistItemWithThumbnail {
-                m_mpv: root.m_mpv
-            }
-        }
-
-        Component {
-            id: playlistItemSimple
-            PlaylistItem {
-                m_mpv: root.m_mpv
-            }
-        }
-
-        Component {
-            id: playlistItemCompact
-            PlaylistItemCompact {
-                m_mpv: root.m_mpv
-            }
-        }
-
-        // without a timer the scroll position is incorrect
-        Timer {
-            id: scrollPositionTimer
-
-            interval: 100
-            running: false
-            repeat: false
-
-            onTriggered: {
-                playlistView.positionViewAtIndex(playlistView.model.playingVideo, ListView.Beginning)
-            }
-        }
-
-        ShaderEffectSource {
-            id: shaderEffect
-
-            visible: PlaylistSettings.overlayVideo
-            anchors.fill: playlistScrollView
-            sourceItem: root.m_mpv
-            sourceRect: {
-                var rectTopLeftY = toolbar.visible ? toolbar.height : 0
-                // future proof
-                // let rectBotLeftY = footbar.visible ? footbar.height : 0
-                if (PlaylistSettings.position === "right") {
-                    return Qt.rect(
-                        root.x,
-                        root.m_mpv.y + rectTopLeftY,
-                        root.width,
-                        root.height - rectTopLeftY// - rectBotLeftY
-                        )
-                }
-                else {
-                    return Qt.rect(
-                        root.x,
-                        rectTopLeftY,
-                        root.width,
-                        root.height - rectTopLeftY// - rectBotLeftY
-                        )
-                }
-            }
-        }
-
-        FastBlur {
-            visible: PlaylistSettings.overlayVideo
-            anchors.fill: shaderEffect
-            radius: 100
-            source: shaderEffect
-            z: 10
         }
     }
 

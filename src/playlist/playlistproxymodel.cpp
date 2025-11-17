@@ -5,6 +5,7 @@
  */
 
 #include "playlistproxymodel.h"
+#include "playlisttypes.h"
 
 struct Range {
     uint first;

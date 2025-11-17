@@ -6,6 +6,7 @@
 
 #include "playlistsortproxymodel.h"
 #include "playlistmodel.h"
+#include "playlisttypes.h"
 
 PlaylistSortProxyModel::PlaylistSortProxyModel(QObject *parent)
     : QSortFilterProxyModel(parent)

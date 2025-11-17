@@ -1,6 +1,4 @@
 /*
- * SPDX-FileCopyrightText: 2025 George Florea Bănuș <georgefb899@gmail.com>
- * SPDX-FileCopyrightText: 2025 Muhammet Sadık Uğursoy <sadikugursoy@gmail.com>
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
@@ -8,36 +6,44 @@
 #ifndef PLAYLISTFILTERPROXYMODEL_H
 #define PLAYLISTFILTERPROXYMODEL_H
 
+#include <QSortFilterProxyModel>
 #include <QItemSelectionModel>
-
 #include "playlistmodel.h"
 #include "playlistproxymodel.h"
 #include "playlistsortproxymodel.h"
+#include "playlisttypes.h"
 
+// âœ… Forward declarations
+class PlaylistMultiProxiesModel;
 class PlaylistModel;
 class PlaylistSortProxyModel;
 class PlaylistProxyModel;
+
 class PlaylistFilterProxyModel : public QSortFilterProxyModel
 {
     Q_OBJECT
     QML_NAMED_ELEMENT(PlaylistFilterProxyModel)
+
 public:
     explicit PlaylistFilterProxyModel(QObject *parent = nullptr);
     friend class PlaylistMultiProxiesModel;
     friend class MpvItem;
 
+    void setPlaylistType(Playlist::PlaylistType type);
+    Playlist::PlaylistType playlistType() const;
+
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
     // clang-format off
     enum class Selection {
-        Clear,          // Clears the selection
-        ClearSingle,    // Clears the selection and selects the item
-        Single,         // Selects the item if it is unselected just like 'ClearSingle' option, but does nothing if it is already selected
-        Toggle,         // Toggles the selection
-        Range,          // Selects a range from anchor to the new selection
-        RangeStart,     // Not a selection, just updates the anchor
-        Invert,         // Inverts the selection
-        All,            // Selects all items
+        Clear,
+        ClearSingle,
+        Single,
+        Toggle,
+        Range,
+        RangeStart,
+        Invert,
+        All,
     };
     Q_ENUM(Selection)
     // clang-format on
@@ -57,6 +63,10 @@ public:
     Q_PROPERTY(QString searchText READ searchText WRITE setSearchText NOTIFY searchTextChanged)
     QString searchText();
     void setSearchText(QString text);
+
+    // âœ… NEW: Expose playlist name to QML
+    Q_PROPERTY(QString playlistName READ playlistName NOTIFY playlistNameChanged)
+    QString playlistName() const;
 
     Q_INVOKABLE uint getPlayingItem();
     Q_INVOKABLE void setPlayingItem(uint i);
@@ -79,10 +89,7 @@ public:
     Q_INVOKABLE void addFilesAndFolders(QList<QUrl> urls, PlaylistModel::Behavior behavior, uint insertOffset = 0);
     Q_INVOKABLE bool isDirectory(const QUrl &url);
 
-    // PlaylistSortProxyModel
     Q_INVOKABLE void sortItems(PlaylistSortProxyModel::Sort sortMode);
-
-    // PlaylistModel
     Q_INVOKABLE void clear();
     Q_INVOKABLE void addItem(const QString &path, PlaylistModel::Behavior behavior);
     Q_INVOKABLE void addItem(const QUrl &url, PlaylistModel::Behavior behavior);
@@ -96,20 +103,21 @@ Q_SIGNALS:
     void itemsRemoved();
     void itemsInserted();
     void searchTextChanged();
+    void playlistNameChanged();  // âœ… NEW signal
 
 private:
     void onSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
     void shufflePlaylistModel();
 
-    // Model getters for convenience
     PlaylistProxyModel *playlistProxyModel() const;
     PlaylistSortProxyModel *playlistSortProxyModel() const;
     PlaylistModel *playlistModel() const;
 
+    Playlist::PlaylistType m_playlistType{Playlist::PlaylistType::Regular};
+
     QModelIndex mapFromPlaylistModel(uint row) const;
     QModelIndex mapToPlaylistModel(uint row) const;
 
-    // Splits the selection from the given index
     void splitItemSelection(const QModelIndexList &original, int splitRow, bool isTopDown, QModelIndexList &lowerPart, QModelIndexList &upperPart);
     QModelIndexList selectedRows() const;
     void saveInternalPlaylist(const QString &path, const QString &playlistName);

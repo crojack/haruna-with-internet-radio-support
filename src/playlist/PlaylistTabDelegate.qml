@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Muhammet Sadık Uğursoy <sadikugursoy@gmail.com>
+ * SPDX-FileCopyrightText: 2025 Muhammet SadÄ±k UÄŸursoy <sadikugursoy@gmail.com>
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
@@ -28,7 +28,9 @@ TabButton {
     property bool leftDrag: dragHandler.activeTranslation.x < dragCenter
     property int maximumTabWidth: 150
 
-    implicitWidth: Math.min(maximumTabWidth, contentItem.implicitWidth)
+    // Make each tab fill equal space - calculate width based on TabBar width
+    width: root.TabBar.tabBar ? root.TabBar.tabBar.width / root.TabBar.tabBar.count : 100
+    implicitHeight: 50
 
     Drag.active: dragHandler.active
     Drag.hotSpot.x: calculateHotSpot()
@@ -40,47 +42,15 @@ TabButton {
             property int iconSize: Kirigami.Units.iconSizes.small
 
             Layout.leftMargin: Kirigami.Units.smallSpacing
-            Layout.preferredWidth: iconSize
+            Layout.preferredWidth: 0  // No space for icon
             Layout.preferredHeight: iconSize
 
-            states: [
-                State {
-                    name: "Play"
-                    when: root.isActive && (root.index === 0 || !leftItemHover.hovered)
-                },
-                State {
-                    name: "Drag"
-                    when: root.index !== 0
-                },
-                State {
-                    name: "Empty"
-                }
-            ]
-
-            Kirigami.Icon {
-                id: dragIcon
-
-                z: 4
-                anchors.fill: parent
-                width: leftItem.iconSize
-                height: leftItem.iconSize
-
-                source: {
-                    switch(leftItem.state) {
-                    case "Empty":
-                        return ""
-                    case "Play":
-                        return "media-playback-start"
-                    case "Drag":
-                        return "drag-surface"
-                    }
-                }
-            }
-
+            // Icon removed - no visual indicator
+            
             HoverHandler {
                 id: leftItemHover
 
-                cursorShape: root.index !== 0 ? Qt.OpenHandCursor : Qt.ArrowCursor
+                cursorShape: (root.index !== 0 && root.index !== 1) ? Qt.OpenHandCursor : Qt.ArrowCursor
             }
 
             DragHandler {
@@ -89,7 +59,7 @@ TabButton {
                 acceptedButtons: Qt.LeftButton
                 dragThreshold: 10
                 cursorShape: active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
-                enabled: root.index !== 0
+                enabled: root.index !== 0 && root.index !== 1
 
                 target: root
                 yAxis.enabled: false
@@ -125,11 +95,12 @@ TabButton {
             id: tabText
 
             text: root.index === 0
-                      ? i18nc("@label:title name of default playlist tab", "Default")
+                      ? i18nc("@label:title name of default playlist tab", "Videos And Music")
                       : root.name
             font: root.font
             elide: Text.ElideRight
             color: Kirigami.Theme.textColor
+            horizontalAlignment: Text.AlignHCenter
 
             Layout.fillWidth: true
 
@@ -142,7 +113,7 @@ TabButton {
         Rectangle {
             id: rightItem
 
-            visible: root.index !== 0
+            visible: root.index !== 0 && root.index !== 1
             radius: Kirigami.Units.iconSizes.small
             color: rightItemHover.hovered ? Kirigami.Theme.negativeTextColor : "transparent"
 
@@ -186,7 +157,7 @@ TabButton {
         // ensures there's enough space after the text
         // when the close button is hidden
         Item {
-            visible: root.index === 0
+            visible: root.index === 0 || root.index === 1
             Layout.preferredWidth: leftItem.width + Kirigami.Units.largeSpacing
         }
     }
@@ -205,7 +176,7 @@ TabButton {
             const to = root.index
             const leftDrag = sourceItem.leftDrag
 
-            if (to === 0) {
+            if (to === 0 || to === 1) {
                 return
             }
 
@@ -272,7 +243,7 @@ TabButton {
         anchors.fill: parent
 
         TapHandler {
-            enabled: root.index !== 0
+            enabled: root.index !== 0 && root.index !== 1
             acceptedButtons: Qt.MiddleButton
             acceptedModifiers: Qt.NoModifier
             grabPermissions: PointerHandler.TakeOverForbidden
@@ -309,21 +280,21 @@ TabButton {
     }
 
     function calculateHotSpot() {
-        let defaultSpot = dragIcon.width * 0.5 + dragIcon.x
+        let defaultSpot = Kirigami.Units.largeSpacing
         if (!dragHandler.active) {
             return defaultSpot
         }
 
         if (root.leftDrag) {
             if (root.index === 0) {
-                return dragIcon.x
+                return 0
             }
             var item = root.TabBar.tabBar.itemAt(root.index - 1)
-            return item.width - dragIcon.width
+            return item.width
         }
         else {
             if (root.index === root.TabBar.tabBar.count - 1) {
-                return dragIcon.width + dragIcon.x
+                return Kirigami.Units.largeSpacing * 2
             }
             var item = root.TabBar.tabBar.itemAt(root.index + 1)
             return -(item.width - root.width)

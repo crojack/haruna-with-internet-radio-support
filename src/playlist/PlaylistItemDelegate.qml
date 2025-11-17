@@ -27,7 +27,6 @@ Item {
     property alias contentItem: contentItem.data
     property alias dragRect: backgroundRect
     property string rowNumber: (index + 1).toString()
-    property real alpha: PlaylistSettings.overlayVideo ? 0.6 : 1
 
     implicitWidth: ListView.view.width
 
@@ -54,20 +53,26 @@ Item {
 
         Kirigami.Theme.colorSet: Kirigami.Theme.View
 
+        // Match RadioStationItem colors exactly
         color: {
             if (root.state === "Highlighted") {
-                return Qt.alpha(Kirigami.Theme.highlightColor, root.alpha)
+                return Qt.rgba(0, 0.83, 1, 0.08)  // Playing - subtle blue tint
             }
             if (root.state === "Hovered") {
-                return Qt.alpha(Kirigami.Theme.hoverColor, root.alpha)
+                return Qt.rgba(1, 1, 1, 0.1)  // Hover - light grey
             }
             if (root.state === "Selected") {
-                return Qt.lighter(Kirigami.Theme.highlightColor, 1.1)
+                return Qt.rgba(1, 1, 1, 0.1)  // Selected - light grey
             }
-            return Qt.alpha(Kirigami.Theme.backgroundColor, root.alpha)
+            return "transparent"  // Normal - transparent
         }
 
-        Behavior on color { ColorAnimation { duration: Kirigami.Units.shortDuration } }
+        border.width: 1
+        border.color: root.isPlaying ? "#00D4FF" : Qt.rgba(1, 1, 1, 0.2)
+        radius: 4
+
+        Behavior on color { ColorAnimation { duration: 150 } }
+        Behavior on border.color { ColorAnimation { duration: 150 } }
 
         // Derived items must override this
         Item {
@@ -104,14 +109,6 @@ Item {
             startX: 0
             startY: 0
             fillColor: Kirigami.Theme.highlightColor
-            /* Order of PathLines:
-              8\                  /5
-              | \                / |
-              |  7--------------6  |
-              |  2--------------3  |
-              | /                \ |
-              1/                  \4
-            */
             PathLine {
                 x: 0;
                 y: shape.arrowHeight
@@ -175,7 +172,6 @@ Item {
                 }
                 break
             case Qt.RightButton:
-                // If right-clicked on a selected item, this will do no-op. Otherwise it will only select this item.
                 root.selectItem(root.index, PlaylistFilterProxyModel.Single)
                 openContextMenu()
                 break
@@ -226,11 +222,11 @@ Item {
     }
 
     function getLabelColor() {
-        if (root.state === "Hovered") {
-            return Kirigami.Theme.highlightedTextColor
+        if (root.state === "Hovered" || root.state === "Selected") {
+            return Kirigami.Theme.textColor
         }
         if (root.state === "Highlighted") {
-            return Kirigami.Theme.highlightedTextColor
+            return Kirigami.Theme.textColor
         }
         return Kirigami.Theme.textColor
     }
@@ -257,9 +253,6 @@ Item {
     }
 
     function cacheItem() {
-        // ListView::reuseItems=true, pools invisible items. During a drag, sometimes
-        // the dragged item gets out of vision and pooled, breaking the drag behaviour.
-        // This prevents pooling of the dragged item.
         ListView.view.currentIndex = index
     }
 }

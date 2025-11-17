@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Muhammet Sadık Uğursoy <sadikugursoy@gmail.com>
+ * SPDX-FileCopyrightText:
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
@@ -7,7 +7,11 @@
 #ifndef PLAYLISTMULTIPROXIESMODEL_H
 #define PLAYLISTMULTIPROXIESMODEL_H
 
-#include "playlistfilterproxymodel.h"
+#include <QAbstractListModel>
+#include "playlisttypes.h" // contains Playlist::PlaylistType
+#include <qqml.h>
+
+class PlaylistFilterProxyModel; // forward declaration
 
 class PlaylistMultiProxiesModel : public QAbstractListModel
 {
@@ -35,6 +39,7 @@ public:
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+
     QHash<int, QByteArray> roleNames() const override;
 
     Q_INVOKABLE void createNewPlaylist(QString playlistName);
@@ -54,16 +59,21 @@ private:
     PlaylistFilterProxyModel *defaultFilterProxy();
     PlaylistFilterProxyModel *getFilterProxy(QString playlistName);
 
+    void init();
     void addPlaylist(QString playlistName, QUrl internalUrl);
     QUrl getPlaylistCacheUrl();
     QUrl getPlaylistUrl(QString playlistName);
     void saveVisiblePlaylist();
     void savePlaylist(QString playlistName, PlaylistFilterProxyModel *proxyModel);
     void savePlaylistCache();
+    void addRadioPlaylist();
 
     std::vector<std::unique_ptr<PlaylistFilterProxyModel>> m_playlistFilterProxyModels;
     uint m_activeIndex{0};
     uint m_visibleIndex{0};
+
+    // Playlist type tracking
+    Playlist::PlaylistType m_playlistType{Playlist::PlaylistType::Regular};
 };
 
 #endif // PLAYLISTMULTIPROXIESMODEL_H

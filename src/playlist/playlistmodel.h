@@ -12,7 +12,8 @@
 #include <QUrl>
 #include <QtQml/qqmlregistration.h>
 
-#include <KFileMetaData/Properties>
+#include <kfilemetadata/properties.h>
+
 
 #include "youtube.h"
 

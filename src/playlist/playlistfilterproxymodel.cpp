@@ -1,6 +1,6 @@
 /*
- * SPDX-FileCopyrightText: 2025 George Florea Bănuș <georgefb899@gmail.com>
- * SPDX-FileCopyrightText: 2025 Muhammet Sadık Uğursoy <sadikugursoy@gmail.com>
+ * SPDX-FileCopyrightText: 2025 George Florea BÄƒnuÈ™ <georgefb899@gmail.com>
+ * SPDX-FileCopyrightText: 2025 Muhammet SadÄ±k UÄŸursoy <sadikugursoy@gmail.com>
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
@@ -23,6 +23,7 @@
 #include "miscutils.h"
 #include "pathutils.h"
 #include "playlistsettings.h"
+#include "playlisttypes.h"
 
 using namespace Qt::StringLiterals;
 PlaylistFilterProxyModel::PlaylistFilterProxyModel(QObject *parent)
@@ -44,6 +45,17 @@ PlaylistFilterProxyModel::PlaylistFilterProxyModel(QObject *parent)
     connect(this, &QSortFilterProxyModel::rowsInserted, this, &PlaylistFilterProxyModel::shufflePlaylistModel);
     connect(this, &QSortFilterProxyModel::rowsRemoved, this, &PlaylistFilterProxyModel::shufflePlaylistModel);
 }
+
+void PlaylistFilterProxyModel::setPlaylistType(Playlist::PlaylistType type)
+{
+    m_playlistType = type;
+}
+
+Playlist::PlaylistType PlaylistFilterProxyModel::playlistType() const
+{
+    return m_playlistType;
+}
+
 
 QVariant PlaylistFilterProxyModel::data(const QModelIndex &index, int role) const
 {
@@ -75,6 +87,12 @@ void PlaylistFilterProxyModel::setSearchText(QString text)
     setFilterRegularExpression(text);
     invalidateFilter();
     Q_EMIT searchTextChanged();
+}
+
+// âœ… NEW: Expose playlist name to QML
+QString PlaylistFilterProxyModel::playlistName() const
+{
+    return playlistModel()->m_playlistName;
 }
 
 uint PlaylistFilterProxyModel::getPlayingItem()
@@ -185,7 +203,7 @@ void PlaylistFilterProxyModel::renameFile(uint row)
     QString path = data(index(row, 0), PlaylistModel::PathRole).toString();
     QUrl url(path);
     if (url.scheme().isEmpty()) {
-        url.setScheme(u"file"_s);
+        url.setScheme(QStringLiteral("file"));
     }
     KFileItem item(url);
     auto renameDialog = new KIO::RenameFileDialog(KFileItemList({item}), nullptr);
@@ -208,7 +226,7 @@ void PlaylistFilterProxyModel::trashFile(uint row)
     QString path = data(index(row, 0), PlaylistModel::PathRole).toString();
     QUrl url(path);
     if (url.scheme().isEmpty()) {
-        url.setScheme(u"file"_s);
+        url.setScheme(QStringLiteral("file"));
     }
     urls << url;
     auto *job = new KIO::DeleteOrTrashJob(urls, KIO::AskUserActionInterface::Trash, KIO::AskUserActionInterface::DefaultConfirmation, this);
@@ -233,7 +251,7 @@ void PlaylistFilterProxyModel::trashFiles()
         QString path = data(index(it->row(), 0), PlaylistModel::PathRole).toString();
         QUrl url(path);
         if (url.scheme().isEmpty()) {
-            url.setScheme(u"file"_s);
+            url.setScheme(QStringLiteral("file"));
         }
         auto sourceRow = mapToPlaylistModel(it->row()).row();
         rows.append(sourceRow);
@@ -482,7 +500,7 @@ void PlaylistFilterProxyModel::addFilesAndFolders(QList<QUrl> urls, PlaylistMode
 
     auto isAcceptedMime = [](const QString &path) -> bool {
         QString mimeType = MiscUtils::mimeType(QUrl::fromLocalFile(path));
-        if (mimeType == u"audio/x-mpegurl"_s) {
+        if (mimeType == QStringLiteral("audio/x-mpegurl")) {
             return false;
         }
         return (mimeType.startsWith(u"video/") || mimeType.startsWith(u"audio/"));
