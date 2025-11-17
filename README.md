@@ -20,9 +20,11 @@ This fork is used for experimenting with internet radio functionality.
 
 # Features
 
-Two separate playlists, one for videos and music and the other one for internet radio
-Search for internet radio stations by name, genres, country, city
-Add favourites to favourites playlist
+Two separate playlists, one for videos and music and the other one for internet radio. 
+
+Search for internet radio stations by name, genres, country and city.
+
+Add favourites to favourites playlist.
 
 # Dependencies
 Dependencies will be printed by `cmake` when building.
