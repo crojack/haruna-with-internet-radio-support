@@ -13,6 +13,7 @@
 #include <memory>
 
 #include "recentfilesmodel.h"
+class RadioStationsModel;
 
 class ChaptersModel;
 class PlaylistFilterProxyModel;
@@ -150,6 +151,21 @@ public:
     bool isReady() const;
     void setIsReady(bool _isReady);
 
+    Q_PROPERTY(RadioStationsModel *radioStationsModel READ radioStationsModel WRITE setRadioStationsModel NOTIFY radioStationsModelChanged)
+    RadioStationsModel *radioStationsModel() const;
+    void setRadioStationsModel(RadioStationsModel *model);
+
+    Q_PROPERTY(bool isRadioStream READ isRadioStream NOTIFY isRadioStreamChanged)
+    bool isRadioStream() const;
+
+    Q_PROPERTY(QString currentRadioStation READ currentRadioStation NOTIFY currentRadioStationChanged)
+    QString currentRadioStation() const;
+
+    Q_PROPERTY(QString radioMetadata READ radioMetadata NOTIFY radioMetadataChanged)
+    QString radioMetadata() const;
+
+    Q_INVOKABLE void loadRadioStation(const QString &url, const QString &name);
+
     Q_INVOKABLE void loadFile(const QString &file);
     Q_INVOKABLE void userCommand(const QString &commandString);
     Q_INVOKABLE void selectSubtitleTrack();
@@ -200,6 +216,11 @@ Q_SIGNALS:
     void playPrevious();
     void openUri(const QString &uri);
 
+    void radioStationsModelChanged();
+    void isRadioStreamChanged();
+    void currentRadioStationChanged();
+    void radioMetadataChanged();
+
 private:
     void initProperties();
     void setupConnections();
@@ -247,6 +268,11 @@ private:
     std::unique_ptr<ChaptersModel> m_chaptersModel;
     bool m_finishedLoading{false};
     std::unique_ptr<QTimer> m_saveTimePositionTimer;
+
+    RadioStationsModel *m_radioStationsModel{nullptr};
+    bool m_isRadioStream{false};
+    QString m_currentRadioStation;
+    QString m_radioMetadata;
 };
 
 #endif // MPVOBJECT_H
