@@ -2,7 +2,21 @@
 # Haruna with internet radio support
 
 Haruna with internet radio support is an open source media player built with Qt/QML and libmpv. It's a temporary fork of the official Haruna media player.
-This fork is used for experimenting with internet radio functionality. 
+This fork is used for experimenting with internet radio functionality.
+
+Improved user experience
+
+When you run the original Haruna media player, the video area appears black. This version lets Haruna load custom background images
+
+<img width="3840" height="2160" alt="Screenshot_20251118_012442" src="https://github.com/user-attachments/assets/9ec4bdca-0909-4ad1-9453-93b4cbb62042" />
+
+The original Haruna also doesn’t display default album art for music without embedded artwork. Instead, it shows the previous track’s embedded album art — so if you’re listening to Mozart and the previous track was a Coldplay song, Haruna will show the Coldplay album art while playing Mozart.
+This fork adds support for custom default album art for tracks that don’t have embedded artwork.
+The same applies to internet radio stations — if a station doesn’t provide its own logo, this fork displays a default radio-station logo.
+
+<img width="3840" height="2160" alt="Screenshot_20251117_155332" src="https://github.com/user-attachments/assets/5c0d5fdd-2179-4e33-966a-99969fa1242c" />
+
+More screenshots:
 
 <img width="3840" height="2160" alt="Screenshot_20251117_021025" src="https://github.com/user-attachments/assets/12371035-d8ea-453e-84f8-0f0b8b95bc8d" />
 
