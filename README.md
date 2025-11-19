@@ -7,7 +7,7 @@ This fork is used for experimenting with internet radio functionality.
 Improved user experience
 
 
-When you run the original Haruna media player, the video area appears black. This version lets Haruna load custom background images
+When you run the original Haruna media player, the video area appears black. This version lets Haruna load custom background images. For now you'll need to create /haruna/images directory in ~/.local/share/KDE with these subdirectories: background, default-album-art and radio-stations-logos. In the background directory put a background.png image, in the default-album directory put a music-default.png image and in the radio-stations-logos directory put a radio-default.png image. It's up to you which images you choose. 
 
 
 <img width="3840" height="2160" alt="Screenshot_20251118_012442" src="https://github.com/user-attachments/assets/9ec4bdca-0909-4ad1-9453-93b4cbb62042" />
