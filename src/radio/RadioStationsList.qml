@@ -1,6 +1,4 @@
 /*
- * SPDX-FileCopyrightText: 2025 
- *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
@@ -19,51 +17,18 @@ Item {
     property int currentPlayingIndex: -1  // Track currently playing station
 
     Component.onCompleted: {
-        console.log("=== RadioStationsList DEBUG ===")
-        console.log("RadioStationsList loaded")
-        console.log("radioModel:", root.radioModel)
-        console.log("radioModel type:", typeof root.radioModel)
-        console.log("mpv:", root.mpv)
-        console.log("mpv type:", typeof root.mpv)
-        
-        if (root.radioModel) {
-            console.log("radioModel exists!")
-            console.log("radioModel.rowCount:", root.radioModel.rowCount)
-            console.log("radioModel.favoriteCount:", root.radioModel.favoriteCount)
-            console.log("radioModel.isSearching:", root.radioModel.isSearching)
-        } else {
-            console.log("ERROR: radioModel is NULL or undefined!")
-        }
+        // If radioModel has loaded favorites by default, we don't need to spam logs
     }
 
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
 
-        // Debug info bar
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 40
-            color: "darkred"
-            visible: !root.radioModel
-
-            Label {
-                anchors.centerIn: parent
-                text: "DEBUG: radioModel is " + (root.radioModel ? "VALID" : "NULL/UNDEFINED")
-                color: "white"
-                font.bold: true
-            }
-        }
-
         // Search header
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 60
             color: Kirigami.Theme.alternateBackgroundColor
-
-            Component.onCompleted: {
-                console.log("Search header Rectangle loaded")
-            }
 
             RowLayout {
                 anchors.fill: parent
@@ -80,27 +45,18 @@ Item {
                     placeholderText: i18n("Search stations or type 'fav' for favorites")
 
                     Keys.onReturnPressed: {
-                        console.log("Search Enter pressed, text:", text)
                         // Reset playing index when searching
                         root.currentPlayingIndex = -1
                         if (root.radioModel) {
-                            console.log("Calling radioModel.searchStations with:", text)
                             root.radioModel.searchStations(text)
-                        } else {
-                            console.log("ERROR: Cannot search, radioModel is null")
                         }
                     }
 
                     Component.onCompleted: {
-                        console.log("SearchField loaded, placeholderText:", placeholderText)
-                        console.log("SearchField Component.onCompleted - loading favorites")
                         // Show favorites by default
                         text = "fav"
                         if (root.radioModel) {
-                            console.log("Calling searchStations('fav') to load favorites")
                             root.radioModel.searchStations("fav")
-                        } else {
-                            console.log("ERROR: Cannot load favorites, radioModel is null")
                         }
                     }
                 }
@@ -112,19 +68,11 @@ Item {
                     Layout.fillHeight: true
                     text: i18n("Search")
 
-                    Component.onCompleted: {
-                        console.log("Search Button loaded, text:", text)
-                    }
-
                     onClicked: {
-                        console.log("Search button clicked, searchField.text:", searchField.text)
                         // Reset playing index when searching
                         root.currentPlayingIndex = -1
                         if (root.radioModel) {
-                            console.log("Calling radioModel.searchStations with:", searchField.text)
                             root.radioModel.searchStations(searchField.text)
-                        } else {
-                            console.log("ERROR: Cannot search, radioModel is null")
                         }
                     }
                 }
@@ -149,10 +97,6 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            Component.onCompleted: {
-                console.log("ScrollView loaded")
-            }
-
             ListView {
                 id: stationsList
                 
@@ -161,16 +105,10 @@ Item {
                 
                 model: root.radioModel
 
-                Component.onCompleted: {
-                    console.log("StationsList ListView loaded")
-                    console.log("ListView model:", model)
-                    console.log("ListView count:", count)
-                }
-
                 onCountChanged: {
-                    console.log("StationsList count changed to:", count)
                     // Reset playing index when count changes (new search results)
-                    root.currentPlayingIndex = -1
+                    // But only if we aren't just reloading the same list (to preserve selection logic if needed)
+                    // root.currentPlayingIndex = -1 
                 }
                 
                 delegate: RadioStationItem {
@@ -178,7 +116,6 @@ Item {
                     isCurrentlyPlaying: root.currentPlayingIndex === index
                     
                     onStationClicked: function(idx) {
-                        console.log("Station clicked at index:", idx)
                         root.currentPlayingIndex = idx
                         if (root.radioModel) {
                             root.radioModel.playStation(idx)
@@ -186,7 +123,6 @@ Item {
                     }
 
                     onFavoriteToggled: function(idx) {
-                        console.log("Favorite toggled at index:", idx)
                         if (root.radioModel) {
                             root.radioModel.toggleFavorite(idx)
                         }
@@ -204,10 +140,6 @@ Item {
                     wrapMode: Text.WordWrap
                     width: parent.width * 0.8
                     horizontalAlignment: Text.AlignHCenter
-                    
-                    Component.onCompleted: {
-                        console.log("Empty state label, visible:", visible)
-                    }
                 }
 
                 // Help text when empty and not searching
@@ -245,9 +177,15 @@ Item {
             console.log("Playing radio station directly:", name, "URL:", url)
             if (root.mpv && root.mpv.defaultFilterProxyModel) {
                 // Use Clear mode to replace playlist content with just this radio station
-                // This effectively plays the station without accumulating items in the playlist
                 root.mpv.defaultFilterProxyModel.addItem(url, PlaylistModel.Clear)
-                console.log("Radio station loaded (playlist cleared and replaced with single station)")
+                
+                // FIX: Store the station name explicitly so Main.qml uses IT, not the song metadata
+                root.mpv.currentRadioStationName = name
+                
+                // FIX 2: Explicitly force playback to start
+                root.mpv.pause = false
+                
+                console.log("Radio station loaded and playback forced")
             } else {
                 console.log("ERROR: mpv or defaultFilterProxyModel is null")
             }
