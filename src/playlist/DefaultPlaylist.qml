@@ -13,6 +13,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.haruna
 import org.kde.haruna.playlist 1.0
 import org.kde.haruna.settings
+import org.kde.haruna.utilities // Added this import to fix PathUtils error
 
 Item {
     id: root
@@ -31,8 +32,8 @@ Item {
             id: toolbar
 
             Layout.fillWidth: true
+            Layout.preferredHeight: visible ? implicitHeight : 0
             visible: PlaylistSettings.showToolbar
-            height: visible ? implicitHeight : 0
             topPadding: 0
             bottomPadding: 0
             
