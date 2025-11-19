@@ -220,6 +220,29 @@ ApplicationWindow {
         onAddToRecentFiles: function(url, openedFrom, name) {
             recentFilesModel.addRecentFile(url, openedFrom, name)
         }
+        
+        // AUTOMATIC CROP LOGIC for Embedded Art
+        // If we are playing an audio file, we force MPV to crop (fill) the screen
+        // This solves the issue of embedded art having black bars.
+        onCurrentUrlChanged: {
+             if (isAudioFile(currentUrl)) {
+                 // panscan 1.0 = Crop/Fill (PreserveAspectCrop)
+                 mpv.setProperty("panscan", 1.0)
+             } else {
+                 // panscan 0.0 = Fit (PreserveAspectFit) - Default for movies
+                 mpv.setProperty("panscan", 0.0)
+             }
+        }
+        
+        // Helper defined here to be accessible by onCurrentUrlChanged
+        function isAudioFile(path) {
+            if (!path) return false
+            const p = path.toString().toLowerCase()
+            return p.endsWith(".mp3") || p.endsWith(".flac") || 
+                   p.endsWith(".m4a") || p.endsWith(".ogg") || 
+                   p.endsWith(".opus") || p.endsWith(".wav") || 
+                   p.endsWith(".wma") || p.endsWith(".aac")
+        }
 
         // Intelligent Image Overlay System - SINGLE IMAGE CROP MODE
         // MOVED INSIDE MpvVideo so Playlist blur source sees it
@@ -228,16 +251,6 @@ ApplicationWindow {
             
             anchors.fill: parent
             color: Kirigami.Theme.backgroundColor
-            
-            // Helper to detect audio files based on extension
-            function isAudioFile(path) {
-                if (!path) return false
-                const p = path.toString().toLowerCase()
-                return p.endsWith(".mp3") || p.endsWith(".flac") || 
-                       p.endsWith(".m4a") || p.endsWith(".ogg") || 
-                       p.endsWith(".opus") || p.endsWith(".wav") || 
-                       p.endsWith(".wma") || p.endsWith(".aac")
-            }
 
             // Consolidate image logic
             property string currentImageSource: {
@@ -269,16 +282,14 @@ ApplicationWindow {
                 }
 
                 // Case 3: Audio file WITH embedded art
-                if (mpv.videoWidth > 0 && isAudioFile(mpv.currentUrl)) {
-                     return "image://preview/" + mpv.currentUrl
-                }
+                // Handled by MPV directly using 'panscan' property above.
+                // We return empty here so the overlay hides and shows the MPV player.
                 
                 // Case 4: Audio file without album art (No video stream)
                 if (mpv.videoWidth === 0 && mpv.videoHeight === 0) {
                     return basePath + "default-album-art/music-default.png"
                 }
                 
-                // Default fallback (unlikely to be hit if visible logic is correct)
                 return ""
             }
 
@@ -299,13 +310,13 @@ ApplicationWindow {
                     return true
                 }
 
-                // Case 4: Audio file WITH embedded art -> Always Show (even if paused)
-                // Only show if we successfully loaded the art
-                if (mpv.videoWidth > 0 && isAudioFile(mpv.currentUrl) && imageOverlay.status === Image.Ready) {
-                    return true
+                // Case 4: Audio file WITH embedded art -> Hide Overlay
+                // We hide this so the MPV player (which is now cropped to fill) can be seen.
+                if (mpv.videoWidth > 0 && mpv.isAudioFile(mpv.currentUrl)) {
+                    return false
                 }
 
-                // Case 5: Regular Video -> Hide (so we see the video, whether playing or paused)
+                // Case 5: Regular Video -> Hide
                 return false
             }
 
@@ -316,7 +327,6 @@ ApplicationWindow {
                 anchors.fill: parent
                 source: imageOverlayContainer.currentImageSource
                 
-                // This is the key setting for Scenario B:
                 // Fills the item, preserving aspect ratio, but cropping excess
                 fillMode: Image.PreserveAspectCrop
                 
