@@ -31,6 +31,9 @@ The same applies to internet radio stations - if a station doesn’t provide its
 <img width="3840" height="2160" alt="Screenshot_20251120_001158" src="https://github.com/user-attachments/assets/32c23429-3e80-4500-a2f5-9cd4a051d687" />
 
 
+<img width="3840" height="2160" alt="Screenshot_20251120_002116" src="https://github.com/user-attachments/assets/5dffc5a8-c9a5-41d1-a592-ecb7601a7e91" />
+
+
 
 More screenshots:
 
