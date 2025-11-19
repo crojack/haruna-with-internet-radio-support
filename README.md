@@ -25,6 +25,11 @@ The same applies to internet radio stations - if a station doesn’t provide its
 <img width="3840" height="2160" alt="Screenshot_20251119_142550" src="https://github.com/user-attachments/assets/7a861069-2f0e-4f21-b135-bb68841775da" />
 
 
+<img width="3840" height="2160" alt="Screenshot_20251120_001132" src="https://github.com/user-attachments/assets/1cf9765f-dc01-471e-88f3-2c980dd51577" />
+
+
+<img width="3840" height="2160" alt="Screenshot_20251120_001158" src="https://github.com/user-attachments/assets/32c23429-3e80-4500-a2f5-9cd4a051d687" />
+
 
 
 More screenshots:
