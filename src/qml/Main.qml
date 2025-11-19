@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2020 George Florea BÃ„Æ’nuÃˆâ„¢ <georgefb899@gmail.com>
+ * SPDX-FileCopyrightText: 2020 George Florea Bănuș <georgefb899@gmail.com>
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
@@ -196,42 +196,6 @@ ApplicationWindow {
         Component.onCompleted: active = GeneralSettings.rememberWindowGeometry
     }
 
-    // Background image - sits behind everything
-    Image {
-        id: backgroundImage
-
-        anchors.fill: parent
-        z: -1  // Force behind all other components
-        // Use StandardPaths; it resolves to ~/.local/share/KDE/haruna on your system
-        source: StandardPaths.writableLocation(StandardPaths.AppDataLocation) + "/background/background.png"
-        fillMode: Image.PreserveAspectCrop
-        asynchronous: true
-
-        // Show when there's no video track (audio-only: radio/music)
-        visible: mpv.videoWidth === 0 && mpv.videoHeight === 0
-        
-        // Debug: monitor visibility changes
-        onVisibleChanged: {
-            console.log("Background image visible:", visible, "videoWidth:", mpv.videoWidth, "videoHeight:", mpv.videoHeight)
-        }
-
-        onStatusChanged: {
-            if (status === Image.Error) {
-                console.log("Background PNG not found, trying JPG fallback")
-                source = StandardPaths.writableLocation(StandardPaths.AppDataLocation) + "/background/background.jpg"
-            } else if (status === Image.Ready) {
-                console.log("Background image loaded successfully")
-            }
-        }
-
-        // Fallback color if image doesn't exist
-        Rectangle {
-            anchors.fill: parent
-            color: Kirigami.Theme.backgroundColor
-            z: -1
-        }
-    }
-
     MpvVideo {
         id: mpv
 
@@ -257,10 +221,161 @@ ApplicationWindow {
             recentFilesModel.addRecentFile(url, openedFrom, name)
         }
 
+        // Intelligent Image Overlay System - SINGLE IMAGE CROP MODE
+        // MOVED INSIDE MpvVideo so Playlist blur source sees it
+        Rectangle {
+            id: imageOverlayContainer
+            
+            anchors.fill: parent
+            color: Kirigami.Theme.backgroundColor
+            
+            // Helper to detect audio files based on extension
+            function isAudioFile(path) {
+                if (!path) return false
+                const p = path.toString().toLowerCase()
+                return p.endsWith(".mp3") || p.endsWith(".flac") || 
+                       p.endsWith(".m4a") || p.endsWith(".ogg") || 
+                       p.endsWith(".opus") || p.endsWith(".wav") || 
+                       p.endsWith(".wma") || p.endsWith(".aac")
+            }
+
+            // Consolidate image logic
+            property string currentImageSource: {
+                // Get base path for images
+                const basePath = StandardPaths.writableLocation(StandardPaths.AppDataLocation) + "/images/"
+                
+                // Case 1: Idle (No file loaded) - Show Default Background
+                if (!mpv.currentUrl || mpv.currentUrl.toString() === "") {
+                    return basePath + "background/background.jpg"
+                }
+                
+                // Case 2: Radio stream
+                if (mpv.visibleFilterProxyModel && mpv.visibleFilterProxyModel.playlistName === "Internet Radio") {
+                    // Try to get station-specific logo first
+                    let stationName = mpv.mediaTitle || ""
+                    let stationLogo = getStationLogo(stationName, basePath)
+                    if (stationLogo !== "") {
+                        return stationLogo
+                    }
+                    
+                    // Fallback to genre logo
+                    let genreLogo = getGenreLogo(stationName, basePath)
+                    if (genreLogo !== "") {
+                        return genreLogo
+                    }
+                    
+                    // Final fallback
+                    return basePath + "radio-stations-logos/radio-default.png"
+                }
+
+                // Case 3: Audio file WITH embedded art
+                if (mpv.videoWidth > 0 && isAudioFile(mpv.currentUrl)) {
+                     return "image://preview/" + mpv.currentUrl
+                }
+                
+                // Case 4: Audio file without album art (No video stream)
+                if (mpv.videoWidth === 0 && mpv.videoHeight === 0) {
+                    return basePath + "default-album-art/music-default.png"
+                }
+                
+                // Default fallback (unlikely to be hit if visible logic is correct)
+                return ""
+            }
+
+            // Visibility Logic - Fixed to allow pausing without showing default background
+            visible: {
+                // Case 1: Idle (No file loaded) -> Show Background
+                if (!mpv.currentUrl || mpv.currentUrl.toString() === "") {
+                    return true
+                }
+                
+                // Case 2: Internet Radio -> Always Show (even if paused)
+                if (mpv.visibleFilterProxyModel && mpv.visibleFilterProxyModel.playlistName === "Internet Radio") {
+                    return true
+                }
+
+                // Case 3: Audio Only (No Video Stream) -> Always Show (even if paused)
+                if (mpv.videoWidth === 0 && mpv.videoHeight === 0) {
+                    return true
+                }
+
+                // Case 4: Audio file WITH embedded art -> Always Show (even if paused)
+                // Only show if we successfully loaded the art
+                if (mpv.videoWidth > 0 && isAudioFile(mpv.currentUrl) && imageOverlay.status === Image.Ready) {
+                    return true
+                }
+
+                // Case 5: Regular Video -> Hide (so we see the video, whether playing or paused)
+                return false
+            }
+
+            // SINGLE IMAGE COMPONENT - Stretches to fill screen (Crops top/bottom)
+            Image {
+                id: imageOverlay
+                
+                anchors.fill: parent
+                source: imageOverlayContainer.currentImageSource
+                
+                // This is the key setting for Scenario B:
+                // Fills the item, preserving aspect ratio, but cropping excess
+                fillMode: Image.PreserveAspectCrop
+                
+                asynchronous: true
+                cache: false
+                
+                onStatusChanged: {
+                    if (status === Image.Error) {
+                        console.log("Image overlay: Failed to load image from:", source)
+                    }
+                }
+            }
+
+            // Helper function: Get station-specific logo
+            function getStationLogo(stationName, basePath) {
+                if (!stationName) return ""
+                let normalized = stationName.toLowerCase()
+                    .replace(/[^a-z0-9]/g, '-')
+                    .replace(/-+/g, '-')
+                    .replace(/^-|-$/g, '')
+                return ""
+            }
+
+            // Helper function: Get genre logo based on station name/tags
+            function getGenreLogo(stationName, basePath) {
+                if (!stationName) return ""
+                let nameLower = stationName.toLowerCase()
+                const genreMap = {
+                    "blues": ["blues", "b.b. king", "muddy waters"],
+                    "jazz": ["jazz", "smooth jazz", "bebop", "swing"],
+                    "classical": ["classical", "symphony", "opera", "bach", "mozart", "beethoven", "chopin"],
+                    "rock": ["rock", "hard rock", "classic rock", "alternative rock"],
+                    "pop": ["pop", "top 40", "hit"],
+                    "country": ["country", "nashville"],
+                    "electronic": ["electronic", "edm", "techno", "house", "trance"],
+                    "hip-hop": ["hip hop", "hip-hop", "rap"],
+                    "reggae": ["reggae", "ska", "dub"],
+                    "metal": ["metal", "heavy metal", "metalcore"],
+                    "folk": ["folk", "acoustic"],
+                    "r&b": ["r&b", "rnb", "rhythm and blues", "soul"],
+                    "easy-listening": ["easy listening", "relax", "chill", "lounge", "ambient"]
+                }
+                for (let genre in genreMap) {
+                    let keywords = genreMap[genre]
+                    for (let i = 0; i < keywords.length; i++) {
+                        if (nameLower.includes(keywords[i])) {
+                            return basePath + "radio-stations-logos/" + genre + ".png"
+                        }
+                    }
+                }
+                return ""
+            }
+        }
+
         Osd {
             id: osd
             active: mpv.isReady
             maxWidth: mpv.width
+            z: 10 // Explicitly set higher Z to ensure OSD is always on top of the overlay
         }
 
         SelectActionPopup {
@@ -290,6 +405,7 @@ ApplicationWindow {
 
         m_mpv: mpv
         height: mpv.height
+        z: 5 
 
         Connections {
             target: actions
@@ -624,4 +740,3 @@ ApplicationWindow {
                 + (menuBar.visible ? menuBar.height : 0)
     }
 }
-
