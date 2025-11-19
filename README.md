@@ -14,7 +14,7 @@ When you run the original Haruna media player, the video area appears black. Thi
 
 
 
-The original Haruna also doesn’t display default album art for music without embedded artwork. Instead, it shows the previous track’s embedded album art - so if you’re listening to Mozart and the previous track was a Coldplay song, Haruna will show the Coldplay album art while playing Mozart.
+The original Haruna also doesn’t display default album art for music that lacks embedded artwork. Instead, it shows the previous track’s embedded album art - so if you’re listening to Mozart and the previous track was a Coldplay song, Haruna will show the Coldplay album art while playing Mozart.
 This fork adds support for custom default album art for tracks that don’t have embedded artwork.
 The same applies to internet radio stations - if a station doesn’t provide its own logo, this fork displays a default radio-station logo.
 
