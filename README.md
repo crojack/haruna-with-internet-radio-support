@@ -1,3 +1,5 @@
+First of all, I want to thank Haruna developers for creating an amazing media player for Linux. All credit goes to them!  
+
 
 # Haruna with internet radio support
 
