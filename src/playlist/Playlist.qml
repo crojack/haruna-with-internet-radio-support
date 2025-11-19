@@ -32,6 +32,9 @@ Page {
     property real customWidth: PlaylistSettings.playlistWidth
     property real fsScale: Window.window.isFullScreen() && PlaylistSettings.bigFontFullscreen ? 1.36 : 1
     property int previousTabIndex: 0  // Track previous tab for cleanup
+    
+    // FIX 1: Variable to remember the playing radio station index when switching tabs
+    property int savedRadioIndex: -1
 
     width: limitWidth(customWidth) * fsScale
 
@@ -55,6 +58,18 @@ Page {
         PlaylistSettings.save()
         if (state === "hidden") {
             contextMenuLoader.active = false
+        }
+    }
+    
+    onWidthChanged: {
+        if (PlaylistSettings.overlayVideo && state === "visible") {
+            refreshTimer.restart()
+        }
+    }
+    
+    onHeightChanged: {
+        if (PlaylistSettings.overlayVideo && state === "visible") {
+            refreshTimer.restart()
         }
     }
 
@@ -174,6 +189,27 @@ Page {
         z: 10
     }
 
+    Timer {
+        id: refreshTimer
+        interval: 100
+        running: false
+        repeat: false
+        onTriggered: {
+            if (PlaylistSettings.overlayVideo && shaderEffect.visible && root.state === "visible") {
+                shaderEffect.scheduleUpdate()
+            }
+        }
+    }
+    
+    Connections {
+        target: PlaylistSettings
+        function onOverlayVideoChanged() {
+            if (PlaylistSettings.overlayVideo && root.state === "visible") {
+                refreshTimer.restart()
+            }
+        }
+    }
+
     Rectangle {
         id: mainContentRect
         
@@ -190,14 +226,15 @@ Page {
         ColumnLayout {
             id: mainLayout
             anchors.fill: parent
-            spacing: 0
+            spacing: Kirigami.Units.smallSpacing
 
-            // Tabs - Always visible
+            // Tabs
             TabBar {
                 id: playlistTabView
 
                 Layout.fillWidth: true
                 Layout.preferredHeight: 40
+                implicitWidth: 0
 
                 background: Rectangle {
                     color: PlaylistSettings.overlayVideo
@@ -208,33 +245,7 @@ Page {
                 }
 
                 onCurrentIndexChanged: {
-                    console.log("=== TabBar currentIndex CHANGED to:", currentIndex)
-                    console.log("Previous tab index:", root.previousTabIndex)
-                    
-                    // Handle switching FROM Internet Radio tab (index 1) TO Videos And Music tab (index 0)
-                    if (root.previousTabIndex === 1 && currentIndex === 0) {
-                        console.log("Switching from Internet Radio to Videos And Music")
-                        // Stop playback
-                        root.m_mpv.pause = true
-                        // Clear the default playlist to remove any radio stations
-                        root.m_mpv.defaultFilterProxyModel.clear()
-                        console.log("Stopped radio playback and cleared Videos And Music playlist")
-                    }
-                    
-                    // Handle switching FROM Videos And Music tab (index 0) TO Internet Radio tab (index 1)
-                    if (root.previousTabIndex === 0 && currentIndex === 1) {
-                        console.log("Switching from Videos And Music to Internet Radio")
-                        // Stop playback
-                        root.m_mpv.pause = true
-                        console.log("Stopped video/audio playback")
-                    }
-                    
-                    // Update the visible index
-                    console.log("Setting playlists.visibleIndex to:", currentIndex)
                     root.m_mpv.playlists.visibleIndex = currentIndex
-                    console.log("playlists.visibleIndex now:", root.m_mpv.playlists.visibleIndex)
-                    
-                    // Store current index as previous for next change
                     root.previousTabIndex = currentIndex
                 }
 
@@ -274,11 +285,12 @@ Page {
                 }
             }
 
-            // Content area - switches between Default and Radio
+            // Content area
             Item {
                 id: playlistContentItem
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.topMargin: Kirigami.Units.smallSpacing
 
                 DropArea {
                     id: playlistDropArea
@@ -316,6 +328,10 @@ Page {
                     RadioStationsList {
                         radioModel: root.m_mpv.radioStationsModel
                         mpv: root.m_mpv
+                        
+                        // FIX 1: Bind index to parent property so it survives tab switching
+                        currentPlayingIndex: root.savedRadioIndex
+                        onCurrentPlayingIndexChanged: root.savedRadioIndex = currentPlayingIndex
                     }
                 }
 

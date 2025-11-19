@@ -7,7 +7,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
-import QtQuick.Dialogs
+import Qt.labs.platform as Platform
 
 import org.kde.kirigami as Kirigami
 import org.kde.haruna
@@ -56,7 +56,7 @@ Item {
 
                 // Row 1: Add, Create, Sort
                 Button {
-                    text: i18nc("@action:button", "Add…")
+                    text: i18nc("@action:button", "Add")
                     Layout.fillWidth: true
                     Layout.preferredHeight: Kirigami.Units.gridUnit * 1.8
                     onClicked: addMenu.popup()
@@ -67,7 +67,7 @@ Item {
                             text: i18nc("@action:button", "Files")
                             onTriggered: {
                                 fileDialog.fileType = "video"
-                                fileDialog.fileMode = FileDialog.OpenFiles
+                                fileDialog.fileMode = Platform.FileDialog.OpenFiles
                                 fileDialog.open()
                             }
                         }
@@ -85,7 +85,8 @@ Item {
                             text: i18nc("@action:button", "Playlist")
                             onTriggered: {
                                 fileDialog.fileType = "playlist"
-                                fileDialog.fileMode = FileDialog.OpenFile
+                                fileDialog.fileMode = Platform.FileDialog.OpenFile
+                                fileDialog.nameFilters = ["m3u (*.m3u *.m3u8)"]
                                 fileDialog.open()
                             }
                         }
@@ -214,7 +215,8 @@ Item {
                     Layout.preferredHeight: Kirigami.Units.gridUnit * 1.8
                     onClicked: {
                         fileDialog.fileType = "playlist"
-                        fileDialog.fileMode = FileDialog.SaveFile
+                        fileDialog.fileMode = Platform.FileDialog.SaveFile
+                        fileDialog.nameFilters = ["m3u (*.m3u *.m3u8)"]
                         fileDialog.open()
                     }
                 }
@@ -402,37 +404,30 @@ Item {
         }
     }
 
-    FileDialog {
+    Platform.FileDialog {
         id: fileDialog
 
         property string fileType: "video"
 
         title: i18nc("@title:window", "Select file")
-        currentFolder: GeneralSettings.fileDialogLastLocation
-        fileMode: FileDialog.OpenFile
-        nameFilters: {
-            if (fileType === "playlist" ) {
-                return ["m3u (*.m3u *.m3u8)"]
-            } else {
-                return []
-            }
-        }
+        folder: GeneralSettings.fileDialogLastLocation
+        fileMode: Platform.FileDialog.OpenFile
 
         onAccepted: {
             switch (fileType) {
             case "video":
-                root.mpv.visibleFilterProxyModel.addItems(fileDialog.selectedFiles, PlaylistModel.Append)
+                root.mpv.visibleFilterProxyModel.addItems(fileDialog.files, PlaylistModel.Append)
                 break
             case "playlist":
-                if (fileMode === FileDialog.OpenFile) {
-                    root.mpv.visibleFilterProxyModel.addItem(fileDialog.selectedFile, PlaylistModel.Append)
+                if (fileMode === Platform.FileDialog.OpenFile) {
+                    root.mpv.visibleFilterProxyModel.addItem(fileDialog.file, PlaylistModel.Append)
                 } else {
-                    root.mpv.visibleFilterProxyModel.saveM3uFile(fileDialog.selectedFile)
+                    root.mpv.visibleFilterProxyModel.saveM3uFile(fileDialog.file)
                 }
 
                 break
             }
-            GeneralSettings.fileDialogLastLocation = PathUtils.parentUrl(fileDialog.selectedFile)
+            GeneralSettings.fileDialogLastLocation = PathUtils.parentUrl(fileDialog.file)
             GeneralSettings.save()
         }
         onRejected: root.mpv.focus = true
