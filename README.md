@@ -20,7 +20,8 @@ The same applies to internet radio stations - if a station doesn’t provide its
 
 
 
-<img width="3840" height="2160" alt="Screenshot_20251117_155332" src="https://github.com/user-attachments/assets/5c0d5fdd-2179-4e33-966a-99969fa1242c" />
+<img width="3840" height="2160" alt="Screenshot_20251119_142550" src="https://github.com/user-attachments/assets/7a861069-2f0e-4f21-b135-bb68841775da" />
+
 
 
 
