@@ -38,6 +38,19 @@ ApplicationWindow {
     minimumHeight: 200
     color: Kirigami.Theme.backgroundColor
     
+    // Apply custom application font if set
+    font: {
+        if (GeneralSettings.applicationFontFamily !== "") {
+            return Qt.font({
+                family: GeneralSettings.applicationFontFamily,
+                pointSize: GeneralSettings.applicationFontSize,
+                bold: GeneralSettings.applicationFontBold,
+                italic: GeneralSettings.applicationFontItalic
+            })
+        }
+        return Qt.application.font
+    }
+    
 
     onVisibilityChanged: function(visibility) {
         if (PlaybackSettings.pauseWhileMinimized) {
@@ -202,6 +215,9 @@ ApplicationWindow {
         osd: osd
         mouseActionsModel: mouseActionsModel
         radioStationsModel: radioStationsModel
+        
+        // FIX: New property to store the actual station name (not the song title)
+        property string currentRadioStationName: ""
 
         width: window.contentItem.width
         height: window.isFullScreen()
@@ -223,7 +239,6 @@ ApplicationWindow {
         
         // AUTOMATIC CROP LOGIC for Embedded Art
         // If we are playing an audio file, we force MPV to crop (fill) the screen
-        // This solves the issue of embedded art having black bars.
         onCurrentUrlChanged: {
              if (isAudioFile(currentUrl)) {
                  // panscan 1.0 = Crop/Fill (PreserveAspectCrop)
@@ -234,18 +249,31 @@ ApplicationWindow {
              }
         }
         
-        // Helper defined here to be accessible by onCurrentUrlChanged
+        // Improved Helper: Handles extensions AND network streams (http/https)
         function isAudioFile(path) {
             if (!path) return false
             const p = path.toString().toLowerCase()
-            return p.endsWith(".mp3") || p.endsWith(".flac") || 
+            
+            // 1. Check standard audio extensions
+            if (p.endsWith(".mp3") || p.endsWith(".flac") || 
                    p.endsWith(".m4a") || p.endsWith(".ogg") || 
                    p.endsWith(".opus") || p.endsWith(".wav") || 
-                   p.endsWith(".wma") || p.endsWith(".aac")
+                   p.endsWith(".wma") || p.endsWith(".aac")) {
+                return true
+            }
+            
+            // 2. Check for network streams that are NOT video files
+            // This handles radio streams like "http://.../stream_128"
+            if ((p.startsWith("http://") || p.startsWith("https://")) && 
+                !p.endsWith(".mkv") && !p.endsWith(".mp4") && !p.endsWith(".avi") && 
+                !p.endsWith(".webm") && !p.endsWith(".mov")) {
+                return true
+            }
+            
+            return false
         }
 
-        // Intelligent Image Overlay System - SINGLE IMAGE CROP MODE
-        // MOVED INSIDE MpvVideo so Playlist blur source sees it
+        // Intelligent Image Overlay System
         Rectangle {
             id: imageOverlayContainer
             
@@ -254,106 +282,129 @@ ApplicationWindow {
 
             // Consolidate image logic
             property string currentImageSource: {
-                // Get base path for images
-                const basePath = StandardPaths.writableLocation(StandardPaths.AppDataLocation) + "/images/"
+                // FIX: Qt.labs.platform StandardPaths.writableLocation returns a URL (file://...)
+                // We should NOT prepend 'file://' again.
+                var rawPath = StandardPaths.writableLocation(StandardPaths.AppDataLocation) + "/images/"
+                
+                // Normalize path: Ensure it ends in slash and is treated as a string for concat
+                if (rawPath.toString().endsWith("/") === false) {
+                    rawPath += "/"
+                }
+                
+                // Helper to combine path
+                function toUrl(pathFragment) {
+                    return rawPath + pathFragment
+                }
                 
                 // Case 1: Idle (No file loaded) - Show Default Background
                 if (!mpv.currentUrl || mpv.currentUrl.toString() === "") {
-                    return basePath + "background/background.jpg"
+                    return toUrl("background/background.jpg")
                 }
                 
                 // Case 2: Radio stream
                 if (mpv.visibleFilterProxyModel && mpv.visibleFilterProxyModel.playlistName === "Internet Radio") {
-                    // Try to get station-specific logo first
-                    let stationName = mpv.mediaTitle || ""
-                    let stationLogo = getStationLogo(stationName, basePath)
+                    // FIX: Use the explicitly stored station name, NOT mediaTitle (which changes with songs)
+                    let stationName = mpv.currentRadioStationName || mpv.mediaTitle || ""
+                    
+                    // 1. Specific Station Logo
+                    let stationLogo = getStationLogo(stationName)
                     if (stationLogo !== "") {
-                        return stationLogo
+                        console.log("Found specific station logo for:", stationName, "->", toUrl(stationLogo))
+                        return toUrl(stationLogo)
                     }
                     
-                    // Fallback to genre logo
-                    let genreLogo = getGenreLogo(stationName, basePath)
+                    // 2. Genre Logo
+                    let genreLogo = getGenreLogo(stationName)
                     if (genreLogo !== "") {
-                        return genreLogo
+                        console.log("Found genre logo for:", stationName, "->", toUrl(genreLogo))
+                        return toUrl(genreLogo)
                     }
                     
-                    // Final fallback
-                    return basePath + "radio-stations-logos/radio-default.png"
+                    // 3. Default Radio Logo
+                    console.log("Using default radio logo")
+                    return toUrl("radio-stations-logos/radio-default.png")
                 }
 
-                // Case 3: Audio file WITH embedded art
-                // Handled by MPV directly using 'panscan' property above.
-                // We return empty here so the overlay hides and shows the MPV player.
+                // Case 3: Audio file WITH embedded art (Handled by MPV panscan)
+                // Return empty so overlay hides
                 
-                // Case 4: Audio file without album art (No video stream)
+                // Case 4: Audio file without album art (No video stream detected)
                 if (mpv.videoWidth === 0 && mpv.videoHeight === 0) {
-                    return basePath + "default-album-art/music-default.png"
+                    return toUrl("default-album-art/music-default.png")
                 }
                 
                 return ""
             }
 
-            // Visibility Logic - Fixed to allow pausing without showing default background
+            // Visibility Logic
             visible: {
-                // Case 1: Idle (No file loaded) -> Show Background
-                if (!mpv.currentUrl || mpv.currentUrl.toString() === "") {
-                    return true
-                }
+                if (!mpv.currentUrl || mpv.currentUrl.toString() === "") return true // Idle
                 
-                // Case 2: Internet Radio -> Always Show (even if paused)
-                if (mpv.visibleFilterProxyModel && mpv.visibleFilterProxyModel.playlistName === "Internet Radio") {
-                    return true
-                }
+                if (mpv.visibleFilterProxyModel && mpv.visibleFilterProxyModel.playlistName === "Internet Radio") return true // Radio
+                
+                if (mpv.videoWidth === 0 && mpv.videoHeight === 0) return true // Audio only
+                
+                if (mpv.videoWidth > 0 && mpv.isAudioFile(mpv.currentUrl)) return false // Embedded art (MPV shows it)
 
-                // Case 3: Audio Only (No Video Stream) -> Always Show (even if paused)
-                if (mpv.videoWidth === 0 && mpv.videoHeight === 0) {
-                    return true
-                }
-
-                // Case 4: Audio file WITH embedded art -> Hide Overlay
-                // We hide this so the MPV player (which is now cropped to fill) can be seen.
-                if (mpv.videoWidth > 0 && mpv.isAudioFile(mpv.currentUrl)) {
-                    return false
-                }
-
-                // Case 5: Regular Video -> Hide
-                return false
+                return false // Regular video
+            }
+            
+            onCurrentImageSourceChanged: {
+                imageOverlay.source = Qt.binding(function() { return currentImageSource })
             }
 
-            // SINGLE IMAGE COMPONENT - Stretches to fill screen (Crops top/bottom)
+            // SINGLE IMAGE COMPONENT
             Image {
                 id: imageOverlay
                 
                 anchors.fill: parent
                 source: imageOverlayContainer.currentImageSource
                 
-                // Fills the item, preserving aspect ratio, but cropping excess
                 fillMode: Image.PreserveAspectCrop
-                
                 asynchronous: true
                 cache: false
                 
                 onStatusChanged: {
                     if (status === Image.Error) {
                         console.log("Image overlay: Failed to load image from:", source)
+                        
+                        // Fallback Logic
+                        if (mpv.visibleFilterProxyModel && mpv.visibleFilterProxyModel.playlistName === "Internet Radio") {
+                             // Use the same rawPath logic to get the base URL
+                             var basePath = StandardPaths.writableLocation(StandardPaths.AppDataLocation) + "/images/"
+                             if (basePath.toString().endsWith("/") === false) basePath += "/"
+                             
+                             const defaultLogo = basePath + "radio-stations-logos/radio-default.png"
+                             
+                             // Avoid infinite loop if default logo is also missing or failed
+                             if (source.toString() !== defaultLogo) {
+                                 console.log("Falling back to default radio logo due to error")
+                                 source = defaultLogo
+                             }
+                        }
                     }
                 }
             }
 
-            // Helper function: Get station-specific logo
-            function getStationLogo(stationName, basePath) {
+            // Helper: Returns RELATIVE path fragment for station logo
+            function getStationLogo(stationName) {
                 if (!stationName) return ""
+                
                 let normalized = stationName.toLowerCase()
-                    .replace(/[^a-z0-9]/g, '-')
-                    .replace(/-+/g, '-')
-                    .replace(/^-|-$/g, '')
-                return ""
+                    .trim()
+                    .replace(/[^a-z0-9]+/g, '_')
+                    .replace(/^_+|_+$/g, '')
+                
+                if (normalized.length === 0) return ""
+                // Returning relative path to be prefixed by toUrl()
+                return "radio-stations-logos/" + normalized + ".jpeg"
             }
 
-            // Helper function: Get genre logo based on station name/tags
-            function getGenreLogo(stationName, basePath) {
+            // Helper: Returns RELATIVE path fragment for genre logo
+            function getGenreLogo(stationName) {
                 if (!stationName) return ""
                 let nameLower = stationName.toLowerCase()
+                
                 const genreMap = {
                     "blues": ["blues", "b.b. king", "muddy waters"],
                     "jazz": ["jazz", "smooth jazz", "bebop", "swing"],
@@ -362,18 +413,20 @@ ApplicationWindow {
                     "pop": ["pop", "top 40", "hit"],
                     "country": ["country", "nashville"],
                     "electronic": ["electronic", "edm", "techno", "house", "trance"],
-                    "hip-hop": ["hip hop", "hip-hop", "rap"],
+                    "hip_hop": ["hip hop", "hip-hop", "rap"],
                     "reggae": ["reggae", "ska", "dub"],
                     "metal": ["metal", "heavy metal", "metalcore"],
                     "folk": ["folk", "acoustic"],
-                    "r&b": ["r&b", "rnb", "rhythm and blues", "soul"],
-                    "easy-listening": ["easy listening", "relax", "chill", "lounge", "ambient"]
+                    "rnb": ["r&b", "rnb", "rhythm and blues", "soul"],
+                    "easy_listening": ["easy listening", "relax", "chill", "lounge", "ambient"]
                 }
+                
                 for (let genre in genreMap) {
                     let keywords = genreMap[genre]
                     for (let i = 0; i < keywords.length; i++) {
                         if (nameLower.includes(keywords[i])) {
-                            return basePath + "radio-stations-logos/" + genre + ".png"
+                            let randomNum = Math.floor(Math.random() * 4) + 1
+                            return "radio-stations-logos/" + genre + "/" + genre + "_" + randomNum + ".jpeg"
                         }
                     }
                 }
