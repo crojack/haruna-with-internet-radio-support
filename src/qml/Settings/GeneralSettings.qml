@@ -206,8 +206,8 @@ SettingsBasePage {
             ToolTipButton {
                 toolTipText: i18nc("@info:tooltip",
                                    "What action shows the footer.<br>" +
-                                   "<strong>Every mouse movement</strong> — every mouse movement over the video area<br>" +
-                                   "<strong>Bottom mouse movement</strong> — mouse movement on the bottom of the video area")
+                                   "<strong>Every mouse movement</strong> â€” every mouse movement over the video area<br>" +
+                                   "<strong>Bottom mouse movement</strong> â€” mouse movement on the bottom of the video area")
             }
 
         }
@@ -330,12 +330,12 @@ SettingsBasePage {
             ToolTipButton {
                 readonly property
                 string waylandMessage: SystemUtils.isPlatformWayland()
-                                       ? i18nc("@info:tooltip extra wayland info for the “Remember window size and position” setting",
+                                       ? i18nc("@info:tooltip extra wayland info for the â€œRemember window size and positionâ€  setting",
                                                "<b>Restoring position is not supported on Wayland.</b><br><br>")
                                        : ""
-                toolTipText: i18nc("@info:tooltip", "Changes to the window’s size and position "
+                toolTipText: i18nc("@info:tooltip", "Changes to the windowâ€™s size and position "
                             +"are saved and used for newly opened windows.<br><br>"
-                            +"%1The “Resize to fit video” setting takes precedence.", waylandMessage)
+                            +"%1The â€œResize to fit videoâ€  setting takes precedence.", waylandMessage)
                 icon.color: SystemUtils.isPlatformWayland() ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
 
                 Layout.preferredHeight: Kirigami.Units.iconSizes.medium
@@ -472,6 +472,124 @@ SettingsBasePage {
 
                 // set the saved style as the current item in the combo box
                 currentIndex = indexOfValue(GeneralSettings.guiStyle)
+            }
+        }
+
+        Label {
+            text: i18nc("@label:listbox", "Application font")
+            Layout.alignment: Qt.AlignRight
+        }
+
+        ColumnLayout {
+            spacing: Kirigami.Units.smallSpacing
+
+            RowLayout {
+                ComboBox {
+                    id: fontFamilyComboBox
+
+                    textRole: "text"
+                    valueRole: "value"
+                    
+                    // Initialize with Default immediately so it doesn't block
+                    model: ListModel {
+                        id: fontFamilyModel
+                        ListElement {
+                            text: "Default"
+                            value: ""
+                        }
+                    }
+
+                    Layout.fillWidth: true
+
+                    onActivated: function(index) {
+                        GeneralSettings.applicationFontFamily = model.get(index).value
+                        GeneralSettings.save()
+                    }
+                    
+                    // Use Timer to load heavy font list AFTER window is shown
+                    Timer {
+                        interval: 300 // Wait 300ms for window to render
+                        running: true
+                        repeat: false
+                        onTriggered: {
+                            const fonts = SystemUtils.getFonts()
+                            var fontItems = []
+                            
+                            // Prepare array for batch insertion (faster than loop append)
+                            for (var i = 0; i < fonts.length; ++i) {
+                                fontItems.push({
+                                    text: fonts[i],
+                                    value: fonts[i]
+                                })
+                            }
+                            
+                            // Bulk append
+                            fontFamilyModel.append(fontItems)
+
+                            // Restore selection
+                            if (GeneralSettings.applicationFontFamily !== "") {
+                                var idx = -1
+                                // Find index in the fetched fonts list
+                                var fontIndex = fonts.indexOf(GeneralSettings.applicationFontFamily)
+                                if (fontIndex !== -1) {
+                                    idx = fontIndex + 1 // +1 offset for "Default" item
+                                }
+                                
+                                if (idx !== -1) {
+                                    fontFamilyComboBox.currentIndex = idx
+                                }
+                            }
+                        }
+                    }
+
+                    Component.onCompleted: {
+                        // Set initial selection just for Default state
+                        if (GeneralSettings.applicationFontFamily === "") {
+                            currentIndex = 0
+                        }
+                    }
+                }
+
+                SpinBox {
+                    id: fontSizeSpinBox
+
+                    from: 6
+                    to: 72
+                    value: GeneralSettings.applicationFontSize
+                    editable: true
+
+                    onValueModified: {
+                        GeneralSettings.applicationFontSize = fontSizeSpinBox.value
+                        GeneralSettings.save()
+                    }
+                }
+
+                ToolTipButton {
+                    toolTipText: i18nc("@info:tooltip", "Set a custom font for Haruna's interface, independent of the system theme. " +
+                                       "Leave as 'Default' to use the system font. Restart required for changes to take effect.")
+
+                    Layout.preferredHeight: Kirigami.Units.iconSizes.medium
+                }
+            }
+
+            RowLayout {
+                CheckBox {
+                    text: i18nc("@option:check", "Bold")
+                    checked: GeneralSettings.applicationFontBold
+                    onClicked: {
+                        GeneralSettings.applicationFontBold = checked
+                        GeneralSettings.save()
+                    }
+                }
+
+                CheckBox {
+                    text: i18nc("@option:check", "Italic")
+                    checked: GeneralSettings.applicationFontItalic
+                    onClicked: {
+                        GeneralSettings.applicationFontItalic = checked
+                        GeneralSettings.save()
+                    }
+                }
             }
         }
 
