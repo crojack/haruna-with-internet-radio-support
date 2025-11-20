@@ -37,7 +37,7 @@ The same applies to internet radio stations - if a station doesn’t provide its
 
 More screenshots:
 
-
+<img width="3840" height="2160" alt="Screenshot_20251120_021529" src="https://github.com/user-attachments/assets/5ff11f48-b581-436c-8a4b-52fc9d7bb691" />
 
 <img width="3840" height="2160" alt="Screenshot_20251117_021025" src="https://github.com/user-attachments/assets/12371035-d8ea-453e-84f8-0f0b8b95bc8d" />
 
