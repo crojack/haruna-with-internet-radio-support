@@ -215,9 +215,9 @@ ApplicationWindow {
         osd: osd
         mouseActionsModel: mouseActionsModel
         radioStationsModel: radioStationsModel
-        
-        // FIX: New property to store the actual station name (not the song title)
+
         property string currentRadioStationName: ""
+        property string currentRadioStationTags: ""
 
         width: window.contentItem.width
         height: window.isFullScreen()
@@ -276,162 +276,186 @@ ApplicationWindow {
         // Intelligent Image Overlay System
         Rectangle {
             id: imageOverlayContainer
-            
+
             anchors.fill: parent
             color: Kirigami.Theme.backgroundColor
+
+            // Track what type of image we're trying to load
+            property int imageAttemptStage: 0  // 0=station logo, 2=default (1=genre removed)
+            property string lastStationName: ""
+            property string lastStationTags: ""
 
             // Consolidate image logic
             property string currentImageSource: {
                 // FIX: Qt.labs.platform StandardPaths.writableLocation returns a URL (file://...)
                 // We should NOT prepend 'file://' again.
                 var rawPath = StandardPaths.writableLocation(StandardPaths.AppDataLocation) + "/images/"
-                
+
+                console.log("====== IMAGE OVERLAY DEBUG START ======")
+                console.log("[currentImageSource] Raw path:", rawPath)
+
                 // Normalize path: Ensure it ends in slash and is treated as a string for concat
                 if (rawPath.toString().endsWith("/") === false) {
                     rawPath += "/"
                 }
-                
+
                 // Helper to combine path
                 function toUrl(pathFragment) {
                     return rawPath + pathFragment
                 }
-                
+
                 // Case 1: Idle (No file loaded) - Show Default Background
                 if (!mpv.currentUrl || mpv.currentUrl.toString() === "") {
+                    console.log("[currentImageSource] Case 1: Idle - showing default background")
+                    imageAttemptStage = 2  // Skip to default
                     return toUrl("background/background.jpg")
                 }
-                
+
                 // Case 2: Radio stream
                 if (mpv.visibleFilterProxyModel && mpv.visibleFilterProxyModel.playlistName === "Internet Radio") {
+                    console.log("[currentImageSource] Case 2: Radio stream detected")
+
                     // FIX: Use the explicitly stored station name, NOT mediaTitle (which changes with songs)
                     let stationName = mpv.currentRadioStationName || mpv.mediaTitle || ""
-                    
-                    // 1. Specific Station Logo
-                    let stationLogo = getStationLogo(stationName)
-                    if (stationLogo !== "") {
-                        console.log("Found specific station logo for:", stationName, "->", toUrl(stationLogo))
-                        return toUrl(stationLogo)
+                    let stationTags = mpv.currentRadioStationTags || ""
+
+                    // Store for later use in error handler
+                    lastStationName = stationName
+                    lastStationTags = stationTags
+
+                    console.log("[currentImageSource] Station name:", stationName)
+                    console.log("[currentImageSource] Station tags:", stationTags)
+                    console.log("[currentImageSource] Media title:", mpv.mediaTitle)
+                    console.log("[currentImageSource] Current attempt stage:", imageAttemptStage)
+
+                    // Stage 0: Try specific station logo
+                    if (imageAttemptStage === 0) {
+                        console.log("[currentImageSource] Stage 0: Trying specific station logo...")
+                        let stationLogo = getStationLogo(stationName)
+                        if (stationLogo !== "") {
+                            console.log("[currentImageSource] Attempting station logo:", stationLogo)
+                            console.log("[currentImageSource] Full URL:", toUrl(stationLogo))
+                            return toUrl(stationLogo)
+                        }
+                        console.log("[currentImageSource] No station logo path generated, skipping genre and going to default...")
+                        imageAttemptStage = 2  // Skip genre (1) and go to default (2)
                     }
-                    
-                    // 2. Genre Logo
-                    let genreLogo = getGenreLogo(stationName)
-                    if (genreLogo !== "") {
-                        console.log("Found genre logo for:", stationName, "->", toUrl(genreLogo))
-                        return toUrl(genreLogo)
-                    }
-                    
-                    // 3. Default Radio Logo
-                    console.log("Using default radio logo")
+
+                    // Stage 1: Genre logo logic REMOVED
+
+                    // Stage 2: Default radio logo
+                    console.log("[currentImageSource] Stage 2: Using default radio logo")
+                    console.log("[currentImageSource] Full URL:", toUrl("radio-stations-logos/radio-default.png"))
                     return toUrl("radio-stations-logos/radio-default.png")
                 }
 
                 // Case 3: Audio file WITH embedded art (Handled by MPV panscan)
                 // Return empty so overlay hides
-                
+
                 // Case 4: Audio file without album art (No video stream detected)
                 if (mpv.videoWidth === 0 && mpv.videoHeight === 0) {
+                    console.log("[currentImageSource] Case 4: Audio file without art - showing default music logo")
+                    imageAttemptStage = 2  // Skip to default
                     return toUrl("default-album-art/music-default.png")
                 }
-                
+
+                console.log("[currentImageSource] No overlay needed - video or embedded art")
+                console.log("====== IMAGE OVERLAY DEBUG END ======")
                 return ""
             }
 
             // Visibility Logic
             visible: {
                 if (!mpv.currentUrl || mpv.currentUrl.toString() === "") return true // Idle
-                
-                if (mpv.visibleFilterProxyModel && mpv.visibleFilterProxyModel.playlistName === "Internet Radio") return true // Radio
-                
-                if (mpv.videoWidth === 0 && mpv.videoHeight === 0) return true // Audio only
-                
-                if (mpv.videoWidth > 0 && mpv.isAudioFile(mpv.currentUrl)) return false // Embedded art (MPV shows it)
 
-                return false // Regular video
+                    if (mpv.visibleFilterProxyModel && mpv.visibleFilterProxyModel.playlistName === "Internet Radio") return true // Radio
+
+                        if (mpv.videoWidth === 0 && mpv.videoHeight === 0) return true // Audio only
+
+                            if (mpv.videoWidth > 0 && mpv.isAudioFile(mpv.currentUrl)) return false // Embedded art (MPV shows it)
+
+                                return false // Regular video
             }
-            
+
             onCurrentImageSourceChanged: {
+                console.log("[imageOverlayContainer] Image source changed to:", currentImageSource)
                 imageOverlay.source = Qt.binding(function() { return currentImageSource })
+            }
+
+            // Reset attempt stage when station changes
+            Connections {
+                target: mpv
+                function onCurrentRadioStationNameChanged() {
+                    console.log("[imageOverlayContainer] Station changed, resetting to stage 0")
+                    imageOverlayContainer.imageAttemptStage = 0
+                }
             }
 
             // SINGLE IMAGE COMPONENT
             Image {
                 id: imageOverlay
-                
+
                 anchors.fill: parent
                 source: imageOverlayContainer.currentImageSource
-                
+
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 cache: false
-                
+
                 onStatusChanged: {
-                    if (status === Image.Error) {
-                        console.log("Image overlay: Failed to load image from:", source)
-                        
-                        // Fallback Logic
+                    console.log("[Image] Status changed to:", status, "for source:", source)
+
+                    if (status === Image.Loading) {
+                        console.log("[Image] Loading image...")
+                    } else if (status === Image.Ready) {
+                        console.log("[Image] ✓ Successfully loaded image")
+                    } else if (status === Image.Error) {
+                        console.log("[Image] ✗ ERROR: Failed to load image from:", source)
+
+                        // Fallback Logic for Radio
                         if (mpv.visibleFilterProxyModel && mpv.visibleFilterProxyModel.playlistName === "Internet Radio") {
-                             // Use the same rawPath logic to get the base URL
-                             var basePath = StandardPaths.writableLocation(StandardPaths.AppDataLocation) + "/images/"
-                             if (basePath.toString().endsWith("/") === false) basePath += "/"
-                             
-                             const defaultLogo = basePath + "radio-stations-logos/radio-default.png"
-                             
-                             // Avoid infinite loop if default logo is also missing or failed
-                             if (source.toString() !== defaultLogo) {
-                                 console.log("Falling back to default radio logo due to error")
-                                 source = defaultLogo
-                             }
+                            if (imageOverlayContainer.imageAttemptStage === 0) {
+                                // Station logo failed, skip genre and go to default
+                                console.log("[Image] Station logo failed, skipping genre, advancing to stage 2 (default)")
+                                imageOverlayContainer.imageAttemptStage = 2
+                            } else {
+                                // Even default failed!
+                                console.log("[Image] ERROR: Even default radio logo failed to load!")
+                            }
                         }
                     }
                 }
             }
 
             // Helper: Returns RELATIVE path fragment for station logo
+            // Tries multiple extensions to find existing files
             function getStationLogo(stationName) {
-                if (!stationName) return ""
-                
+                console.log("[getStationLogo] Called with station name:", stationName)
+
+                if (!stationName) {
+                    console.log("[getStationLogo] Empty station name, returning empty")
+                    return ""
+                }
+
                 let normalized = stationName.toLowerCase()
-                    .trim()
-                    .replace(/[^a-z0-9]+/g, '_')
-                    .replace(/^_+|_+$/g, '')
-                
-                if (normalized.length === 0) return ""
-                // Returning relative path to be prefixed by toUrl()
-                return "radio-stations-logos/" + normalized + ".jpeg"
+                .trim()
+                .replace(/[^a-z0-9]+/g, '_')
+                .replace(/^_+|_+$/g, '')
+
+                console.log("[getStationLogo] Normalized name:", normalized)
+
+                if (normalized.length === 0) {
+                    console.log("[getStationLogo] Normalized name is empty, returning empty")
+                    return ""
+                }
+
+                // Return first attempt - .jpeg (we'll try other extensions if this fails)
+                let logoPath = "radio-stations-logos/" + normalized + ".jpeg"
+                console.log("[getStationLogo] Returning path:", logoPath)
+                return logoPath
             }
 
-            // Helper: Returns RELATIVE path fragment for genre logo
-            function getGenreLogo(stationName) {
-                if (!stationName) return ""
-                let nameLower = stationName.toLowerCase()
-                
-                const genreMap = {
-                    "blues": ["blues", "b.b. king", "muddy waters"],
-                    "jazz": ["jazz", "smooth jazz", "bebop", "swing"],
-                    "classical": ["classical", "symphony", "opera", "bach", "mozart", "beethoven", "chopin"],
-                    "rock": ["rock", "hard rock", "classic rock", "alternative rock"],
-                    "pop": ["pop", "top 40", "hit"],
-                    "country": ["country", "nashville"],
-                    "electronic": ["electronic", "edm", "techno", "house", "trance"],
-                    "hip_hop": ["hip hop", "hip-hop", "rap"],
-                    "reggae": ["reggae", "ska", "dub"],
-                    "metal": ["metal", "heavy metal", "metalcore"],
-                    "folk": ["folk", "acoustic"],
-                    "rnb": ["r&b", "rnb", "rhythm and blues", "soul"],
-                    "easy_listening": ["easy listening", "relax", "chill", "lounge", "ambient"]
-                }
-                
-                for (let genre in genreMap) {
-                    let keywords = genreMap[genre]
-                    for (let i = 0; i < keywords.length; i++) {
-                        if (nameLower.includes(keywords[i])) {
-                            let randomNum = Math.floor(Math.random() * 4) + 1
-                            return "radio-stations-logos/" + genre + "/" + genre + "_" + randomNum + ".jpeg"
-                        }
-                    }
-                }
-                return ""
-            }
+            // Genre Logo Helper REMOVED
         }
 
         Osd {
