@@ -23,7 +23,9 @@ This fork extends the original Haruna with Internet Radio capabilities, dual-tab
 If you appreciate this software, please consider supporting the original Haruna project and the KDE community.
 ---------------
 
-## Screenshots (In Settings --> General --> Interface choose: Color Scheme: Breeze Dark; GUI Style: Breeze; Application Font: Supermolot Light (this free font can be downloaded here: https://www.1001fonts.com/search.html?search=supermolot ) Images are provided here: https://github.com/crojack/haruna-with-internet-radio-support/tree/master/images
+## Screenshots##
+
+(In Settings --> General --> Interface choose: Color Scheme: Breeze Dark; GUI Style: Breeze; Application Font: Supermolot Light (this free font can be downloaded here: https://www.1001fonts.com/search.html?search=supermolot ) Images are provided here: https://github.com/crojack/haruna-with-internet-radio-support/tree/master/images
 
 <img width="3840" height="2160" alt="Screenshot_20251123_023107" src="https://github.com/user-attachments/assets/2263de1d-e55c-4b80-8a51-72738b61e8e8" />
 
