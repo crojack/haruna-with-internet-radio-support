@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2020 George Florea Bănuș <georgefb899@gmail.com>
+ * SPDX-FileCopyrightText: 2020 George Florea BÄƒnuÈ™ <georgefb899@gmail.com>
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
@@ -25,25 +25,25 @@ using namespace Qt::StringLiterals;
 
 int main(int argc, char *argv[])
 {
-    qSetMessagePattern(u"%{function}() : %{message}\n"_s);
+    qSetMessagePattern(QStringLiteral("%{function}() : %{message}\n"));
 
-    QApplication::setOrganizationName(u"KDE"_s);
-    QApplication::setApplicationName(u"Haruna"_s);
-    QApplication::setOrganizationDomain(u"kde.org"_s);
-    QApplication::setApplicationDisplayName(u"Haruna - Media Player"_s);
+    QApplication::setOrganizationName(QStringLiteral("KDE"));
+    QApplication::setApplicationName(QStringLiteral("Haruna"));
+    QApplication::setOrganizationDomain(QStringLiteral("kde.org"));
+    QApplication::setApplicationDisplayName(QStringLiteral("Haruna - Media Player"));
     QApplication::setApplicationVersion(Application::version());
 
     // required by mpv
     QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
 
     if (qEnvironmentVariableIsEmpty("QT_QUICK_CONTROLS_STYLE")) {
-        QQuickStyle::setStyle(u"org.kde.desktop"_s);
+        QQuickStyle::setStyle(QStringLiteral("org.kde.desktop"));
     }
-    QQuickStyle::setFallbackStyle(u"Fusion"_s);
-    QIcon::setFallbackThemeName(u"breeze"_s);
+    QQuickStyle::setFallbackStyle(QStringLiteral("Fusion"));
+    QIcon::setFallbackThemeName(QStringLiteral("breeze"));
 
     QApplication qApplication(argc, argv);
-    QApplication::setWindowIcon(QIcon::fromTheme(u"haruna"_s));
+    QApplication::setWindowIcon(QIcon::fromTheme(QStringLiteral("haruna")));
     KLocalizedString::setApplicationDomain("haruna");
 
     auto application = Application::instance();
@@ -79,10 +79,10 @@ int main(int argc, char *argv[])
     }
 
     QQmlApplicationEngine engine(&qApplication);
-    engine.addImageProvider(u"thumbnail"_s, new ThumbnailImageProvider());
+    engine.addImageProvider(QStringLiteral("thumbnail"), new ThumbnailImageProvider());
     engine.rootContext()->setContextObject(new KLocalizedContext(Application::instance()));
-    engine.loadFromModule("org.kde.haruna", "Main");
 
+    engine.load(QUrl(QStringLiteral("qrc:/qt/qml/org/kde/haruna/qml/Main.qml")));
     application->setQmlEngine(&engine);
 
     return qApplication.exec();

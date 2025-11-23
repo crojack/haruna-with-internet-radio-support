@@ -96,7 +96,7 @@ Application::Application()
     QObject::connect(m_appEventFilter.get(), &ApplicationEventFilter::applicationMouseLeave, this, &Application::qmlApplicationMouseLeave);
     QObject::connect(m_appEventFilter.get(), &ApplicationEventFilter::applicationMouseEnter, this, &Application::qmlApplicationMouseEnter);
 
-    if (GeneralSettings::guiStyle() != u"System"_s) {
+    if (GeneralSettings::guiStyle() != QStringLiteral("System")) {
         QApplication::setStyle(GeneralSettings::guiStyle());
     }
 
@@ -126,11 +126,11 @@ void Application::setupWorkerThread()
         &Worker::ytdlpVersionRetrived,
         this,
         [this](const QByteArray &version) {
-            m_aboutData.addComponent(u"yt-dlp"_s,
+            m_aboutData.addComponent(QStringLiteral("yt-dlp"),
                                      i18n("Feature-rich command-line audio/video downloader"),
                                      QString::fromUtf8(version),
-                                     u"https://github.com/yt-dlp/yt-dlp"_s,
-                                     u"https://unlicense.org"_s);
+                                     QStringLiteral("https://github.com/yt-dlp/yt-dlp"),
+                                     QStringLiteral("https://unlicense.org"));
             KAboutData::setApplicationData(m_aboutData);
         },
         Qt::QueuedConnection);
@@ -139,34 +139,34 @@ void Application::setupWorkerThread()
 
 void Application::setupAboutData()
 {
-    m_aboutData.setComponentName(u"haruna"_s);
+    m_aboutData.setComponentName(QStringLiteral("haruna"));
     m_aboutData.setDisplayName(i18nc("application title/display name", "Haruna"));
     m_aboutData.setVersion(Application::version().toUtf8());
     m_aboutData.setShortDescription(i18nc("@title", "Media player"));
     m_aboutData.setLicense(KAboutLicense::GPL_V3);
     m_aboutData.setCopyrightStatement(i18nc("copyright statement, use copyright symbol and en dash for the year range", "© 2019–2025"));
-    m_aboutData.setHomepage(u"https://haruna.kde.org"_s);
-    m_aboutData.setBugAddress(u"https://bugs.kde.org/enter_bug.cgi?product=Haruna"_s.toUtf8());
-    m_aboutData.setDesktopFileName(u"org.kde.haruna"_s);
+    m_aboutData.setHomepage(QStringLiteral("https://haruna.kde.org"));
+    m_aboutData.setBugAddress(QStringLiteral("https://bugs.kde.org/enter_bug.cgi?product=Haruna").toUtf8());
+    m_aboutData.setDesktopFileName(QStringLiteral("org.kde.haruna"));
 
     m_aboutData.addAuthor(i18nc("@info:credit", "George Florea Bănuș"),
                           i18nc("@info:credit", "Developer"),
-                          u"georgefb899@gmail.com"_s,
-                          u"https://georgefb.com"_s);
+                          QStringLiteral("georgefb899@gmail.com"),
+                          QStringLiteral("https://georgefb.com"));
 
     QMetaObject::invokeMethod(Worker::instance(), &Worker::getYtdlpVersion, Qt::QueuedConnection);
 
     MpvAbstractItem mpvItem;
-    m_aboutData.addComponent(u"mpv"_s,
+    m_aboutData.addComponent(QStringLiteral("mpv"),
                              i18n("Command line video player"),
-                             mpvItem.getProperty(u"mpv-version"_s).toString().replace(u"mpv "_s, QString{}),
-                             u"https://mpv.io"_s,
+                             mpvItem.getProperty(QStringLiteral("mpv-version")).toString().replace(QStringLiteral("mpv "), QString{}),
+                             QStringLiteral("https://mpv.io"),
                              KAboutLicense::GPL);
 
-    m_aboutData.addComponent(u"ffmpeg"_s,
+    m_aboutData.addComponent(QStringLiteral("ffmpeg"),
                              i18n("Cross-platform solution to record, convert and stream audio and video"),
-                             mpvItem.getProperty(u"ffmpeg-version"_s).toString(),
-                             u"https://www.ffmpeg.org"_s,
+                             mpvItem.getProperty(QStringLiteral("ffmpeg-version")).toString(),
+                             QStringLiteral("https://www.ffmpeg.org"),
                              KAboutLicense::GPL);
 
     KAboutData::setApplicationData(m_aboutData);
@@ -176,13 +176,13 @@ void Application::setupCommandLineParser()
 {
     m_parser = std::make_unique<QCommandLineParser>();
     m_aboutData.setupCommandLine(m_parser.get());
-    m_parser->addPositionalArgument(u"file"_s, i18nc("@info:shell", "File to open"));
+    m_parser->addPositionalArgument(QStringLiteral("file"), i18nc("@info:shell", "File to open"));
 
-    QCommandLineOption ytdlFormatSelectionOption(QStringList() << u"ytdl-format-selection"_s << u"ytdlfs"_s,
+    QCommandLineOption ytdlFormatSelectionOption(QStringList() << QStringLiteral("ytdl-format-selection") << QStringLiteral("ytdlfs"),
                                                  i18nc("@info:shell",
                                                        "Allows to temporarily override the yt-dlp format selection setting. "
                                                        "Will be overwritten if the setting is changed through the GUI"),
-                                                 u"bestvideo+bestaudio/best"_s,
+                                                 QStringLiteral("bestvideo+bestaudio/best"),
                                                  QString());
     m_parser->addOption(ytdlFormatSelectionOption);
 
@@ -243,7 +243,7 @@ QStringList Application::availableGuiStyles()
 
 void Application::setGuiStyle(const QString &style)
 {
-    if (style == u"Default"_s) {
+    if (style == QStringLiteral("Default")) {
         QApplication::setStyle(m_systemDefaultStyle);
         return;
     }
