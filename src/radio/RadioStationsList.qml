@@ -99,25 +99,30 @@ Item {
 
             ListView {
                 id: stationsList
-                
+
                 clip: true
                 spacing: Kirigami.Units.smallSpacing
-                
+
                 model: root.radioModel
 
                 onCountChanged: {
                     // Reset playing index when count changes (new search results)
                     // But only if we aren't just reloading the same list (to preserve selection logic if needed)
-                    // root.currentPlayingIndex = -1 
+                    // root.currentPlayingIndex = -1
                 }
-                
+
                 delegate: RadioStationItem {
                     width: stationsList.width
                     isCurrentlyPlaying: root.currentPlayingIndex === index
-                    
-                    onStationClicked: function(idx) {
+
+                    onStationClicked: function(idx, stationTags) {
                         root.currentPlayingIndex = idx
                         if (root.radioModel) {
+                            // Store tags in mpv before playing
+                            if (root.mpv) {
+                                root.mpv.currentRadioStationTags = stationTags
+                                console.log("[RadioStationsList] Stored tags for genre matching:", stationTags)
+                            }
                             root.radioModel.playStation(idx)
                         }
                     }
@@ -129,65 +134,46 @@ Item {
                     }
                 }
 
-                // Empty state
-                Label {
-                    anchors.centerIn: parent
-                    visible: stationsList.count === 0 && (!root.radioModel || !root.radioModel.isSearching)
-                    text: i18n("No stations found. Try searching for a station name, country, or genre.")
-                    color: Qt.rgba(Kirigami.Theme.textColor.r, 
-                                  Kirigami.Theme.textColor.g, 
-                                  Kirigami.Theme.textColor.b, 0.6)
-                    wrapMode: Text.WordWrap
-                    width: parent.width * 0.8
-                    horizontalAlignment: Text.AlignHCenter
-                }
-
-                // Help text when empty and not searching
+                // Unified Empty State & Help Container
+                // Groups the error message and tips so they don't overlap
                 Column {
                     anchors.centerIn: parent
-                    visible: stationsList.count === 0 && (!root.radioModel || !root.radioModel.isSearching)
-                    spacing: Kirigami.Units.largeSpacing
                     width: parent.width * 0.8
+                    spacing: Kirigami.Units.largeSpacing
+                    visible: stationsList.count === 0 && (!root.radioModel || !root.radioModel.isSearching)
 
+                    // 1. No stations found message
                     Label {
                         width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        text: i18n("No stations found. Try searching for a station name, country, or genre.")
+                        color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.6)
+                        wrapMode: Text.WordWrap
+                    }
+
+                    // 2. Spacer
+                    Item { 
+                        width: 1 
+                        height: Kirigami.Units.gridUnit 
+                    }
+
+                    // 3. Search Tips Header
+                    Label {
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
                         text: i18n("Search tips:")
                         font.weight: Font.Bold
-                        horizontalAlignment: Text.AlignHCenter
                     }
 
+                    // 4. Search Tips Body
                     Label {
                         width: parent.width
-                        text: i18n("• Type station name: 'BBC', 'NPR', 'Radio Paradise'\n• Type country code: 'GB', 'US', 'DE'\n• Type 'genre:jazz' or 'genre:classical'\n• Type 'fav' to show your favorites")
+                        text: i18n("• Type station name:  'BBC', 'NPR', 'Radio Paradise'\n• Type country code:  'GB', 'US', 'DE'\n• Type genre name:  'jazz' or 'classical'\n• Type artist name:  'Mozart' or 'Beatles'\n• Type  'fav'  to show your favorites")
                         wrapMode: Text.WordWrap
                         horizontalAlignment: Text.AlignLeft
-                        color: Qt.rgba(Kirigami.Theme.textColor.r,
-                                      Kirigami.Theme.textColor.g,
-                                      Kirigami.Theme.textColor.b, 0.7)
+                        color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.7)
                     }
                 }
-            }
-        }
-    }
-
-    // Connections to handle playback requests from the model
-    Connections {
-        target: root.radioModel
-        function onPlayStationRequested(url, name) {
-            console.log("Playing radio station directly:", name, "URL:", url)
-            if (root.mpv && root.mpv.defaultFilterProxyModel) {
-                // Use Clear mode to replace playlist content with just this radio station
-                root.mpv.defaultFilterProxyModel.addItem(url, PlaylistModel.Clear)
-                
-                // FIX: Store the station name explicitly so Main.qml uses IT, not the song metadata
-                root.mpv.currentRadioStationName = name
-                
-                // FIX 2: Explicitly force playback to start
-                root.mpv.pause = false
-                
-                console.log("Radio station loaded and playback forced")
-            } else {
-                console.log("ERROR: mpv or defaultFilterProxyModel is null")
             }
         }
     }
