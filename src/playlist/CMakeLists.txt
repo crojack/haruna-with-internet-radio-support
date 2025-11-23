@@ -7,6 +7,7 @@
 qt_add_library(playlist STATIC)
 qt_add_qml_module(playlist
     URI org.kde.haruna.playlist
+    VERSION 1.0
     OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/src/org/kde/haruna/playlist
     IMPORT_PATH ${CMAKE_BINARY_DIR}
     QML_FILES
@@ -16,6 +17,7 @@ qt_add_qml_module(playlist
         PlaylistItemCompact.qml
         PlaylistItemWithThumbnail.qml
         PlaylistTabDelegate.qml
+        DefaultPlaylist.qml
     SOURCES
         playlistmodel.h
         playlistmodel.cpp
@@ -29,6 +31,12 @@ qt_add_qml_module(playlist
         playlistmultiproxiesmodel.cpp
         playlistrenamevalidator.h
         playlistrenamevalidator.cpp
+        playlisttypes.h
+)
+
+target_include_directories(playlist
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_link_libraries(playlist PRIVATE
