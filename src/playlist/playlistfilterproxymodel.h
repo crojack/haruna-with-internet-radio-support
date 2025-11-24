@@ -1,3 +1,11 @@
+/*
+ * SPDX-FileCopyrightText: 2025 George Florea BÄƒnuÈ™ <georgefb899@gmail.com>
+ * SPDX-FileCopyrightText: 2025 Muhammet SadÄ±k UÄŸursoy <sadikugursoy@gmail.com>
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+
 #ifndef PLAYLISTFILTERPROXYMODEL_H
 #define PLAYLISTFILTERPROXYMODEL_H
 
