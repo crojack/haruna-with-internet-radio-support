@@ -1,8 +1,3 @@
-/*
- *
- * SPDX-License-Identifier: GPL-3.0-or-later
- */
-
 #ifndef PLAYLISTFILTERPROXYMODEL_H
 #define PLAYLISTFILTERPROXYMODEL_H
 
@@ -13,7 +8,6 @@
 #include "playlistsortproxymodel.h"
 #include "playlisttypes.h"
 
-// âœ… Forward declarations
 class PlaylistMultiProxiesModel;
 class PlaylistModel;
 class PlaylistSortProxyModel;
@@ -34,7 +28,6 @@ public:
 
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
-    // clang-format off
     enum class Selection {
         Clear,
         ClearSingle,
@@ -46,7 +39,6 @@ public:
         All,
     };
     Q_ENUM(Selection)
-    // clang-format on
 
     enum Filter {
         Name = Qt::UserRole,
@@ -64,7 +56,6 @@ public:
     QString searchText();
     void setSearchText(QString text);
 
-    // âœ… NEW: Expose playlist name to QML
     Q_PROPERTY(QString playlistName READ playlistName NOTIFY playlistNameChanged)
     QString playlistName() const;
 
@@ -103,7 +94,7 @@ Q_SIGNALS:
     void itemsRemoved();
     void itemsInserted();
     void searchTextChanged();
-    void playlistNameChanged();  // âœ… NEW signal
+    void playlistNameChanged();
 
 private:
     void onSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
