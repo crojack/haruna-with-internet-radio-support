@@ -39,9 +39,9 @@ If you appreciate this software, please consider supporting the original Haruna 
 
 <img width="3840" height="2160" alt="Screenshot_20251123_023304" src="https://github.com/user-attachments/assets/8d3bbc4a-55fb-4fa7-953d-aeed8b252f21" />
 
-<img width="3840" height="2160" alt="Screenshot_20251123_023333" src="https://github.com/user-attachments/assets/122f2592-f7fb-4fe2-bcdb-fc1cdaf8542c" />
+<img width="2380" height="1552" alt="Screenshot_20251208_034720" src="https://github.com/user-attachments/assets/4d55d6a2-8b13-48f5-9409-56c117bf10f4" />
 
-<img width="3840" height="2160" alt="Screenshot_20251123_023341" src="https://github.com/user-attachments/assets/d938c759-5bd6-4798-b1ca-b1f509915b7b" />
+<img width="2380" height="1552" alt="Screenshot_20251208_034729" src="https://github.com/user-attachments/assets/ec7b1b2e-2984-47cf-8bd9-d34bb15f572b" />
 
 <img width="3840" height="2160" alt="Screenshot_20251123_023432" src="https://github.com/user-attachments/assets/860f2c8d-ef1b-4566-b421-83f027eafd68" />
 
