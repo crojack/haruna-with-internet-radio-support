@@ -27,17 +27,17 @@ If you appreciate this software, please consider supporting the original Haruna 
 
 (In Settings --> General --> Interface choose: Color Scheme: Breeze Dark; GUI Style: Breeze; Application Font: Supermolot Light (this free font can be downloaded here: https://www.1001fonts.com/search.html?search=supermolot ) Images are provided here: https://github.com/crojack/haruna-with-internet-radio-support/tree/master/images
 
-<img width="3840" height="2160" alt="Screenshot_20251123_023107" src="https://github.com/user-attachments/assets/2263de1d-e55c-4b80-8a51-72738b61e8e8" />
+<img width="2620" height="1600" alt="Screenshot_20251208_035843" src="https://github.com/user-attachments/assets/b4e5bc7e-f57c-428a-846f-bdd55838944e" />
 
-<img width="3840" height="2160" alt="Screenshot_20251123_023125" src="https://github.com/user-attachments/assets/57c704fc-a582-4abf-b627-be84777898d7" />
+<img width="2620" height="1600" alt="Screenshot_20251208_035909" src="https://github.com/user-attachments/assets/76097d36-3be6-4b9d-9210-a774f0cd39eb" />
 
-<img width="3840" height="2160" alt="Screenshot_20251123_023151" src="https://github.com/user-attachments/assets/27652df1-4bd5-4970-bc10-3ec514863524" />
+<img width="2620" height="1600" alt="Screenshot_20251208_035923" src="https://github.com/user-attachments/assets/0916ff0e-ab95-4f07-8d1b-5061bb551b98" />
 
-<img width="3840" height="2160" alt="Screenshot_20251123_023221" src="https://github.com/user-attachments/assets/0f11d41f-9152-42bb-9de7-daf55f8ef06c" />
+<img width="2620" height="1600" alt="Screenshot_20251208_035959" src="https://github.com/user-attachments/assets/e740a543-c6d8-46ea-b85a-a3646a51be37" />
 
-<img width="3840" height="2160" alt="Screenshot_20251123_023243" src="https://github.com/user-attachments/assets/b07406d2-71ef-4386-913b-0e5013363076" />
+<img width="2620" height="1600" alt="Screenshot_20251208_040041" src="https://github.com/user-attachments/assets/931d42bb-e5cb-4b89-b0d8-dc91e25cc7c5" />
 
-<img width="3840" height="2160" alt="Screenshot_20251123_023304" src="https://github.com/user-attachments/assets/8d3bbc4a-55fb-4fa7-953d-aeed8b252f21" />
+<img width="2430" height="1532" alt="Screenshot_20251208_040102" src="https://github.com/user-attachments/assets/5dfcfe64-3273-4abc-a244-e001153b8358" />
 
 <img width="2380" height="1552" alt="Screenshot_20251208_034720" src="https://github.com/user-attachments/assets/4d55d6a2-8b13-48f5-9409-56c117bf10f4" />
 
