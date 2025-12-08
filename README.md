@@ -43,11 +43,11 @@ If you appreciate this software, please consider supporting the original Haruna 
 
 <img width="2380" height="1552" alt="Screenshot_20251208_034729" src="https://github.com/user-attachments/assets/ec7b1b2e-2984-47cf-8bd9-d34bb15f572b" />
 
-<img width="3840" height="2160" alt="Screenshot_20251123_023432" src="https://github.com/user-attachments/assets/860f2c8d-ef1b-4566-b421-83f027eafd68" />
+<img width="2380" height="1552" alt="Screenshot_20251208_035102" src="https://github.com/user-attachments/assets/9c3253d2-f48d-4c7e-8719-f8e47d46b891" />
 
-<img width="3840" height="2160" alt="Screenshot_20251123_023528" src="https://github.com/user-attachments/assets/b0da9d24-b5b4-4f5c-ba3a-247b103cb807" />
+<img width="2380" height="1552" alt="Screenshot_20251208_035137" src="https://github.com/user-attachments/assets/c0aaedef-51cc-488a-b146-f4ce6c1770fc" />
 
-<img width="3840" height="2160" alt="Screenshot_20251123_023556" src="https://github.com/user-attachments/assets/b57205a3-01c3-430e-a5b2-5ff31d89332e" />
+<img width="3831" height="2021" alt="Screenshot_20251208_035528" src="https://github.com/user-attachments/assets/54bc288a-a954-451a-b02b-83b3fa33aa5d" />
 
 
 ## New Features
