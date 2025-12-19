@@ -112,49 +112,162 @@ Clean separation of media types with two dedicated tabs:
 
 ### Prerequisites
 
-- Qt 6.6 or later
-- KDE Frameworks 6.0 or later
-- MPV media player library
-- FFmpeg
-- CMake 3.15 or later
-- Ninja build system (or make)
+### Debian 13 Trixie
 
-### Installing Dependencies
+Compiling a modern KDE 6 application like Haruna Enhanced on Debian 13 requires a specific combination of build tools, development headers, and runtime QML modules.
 
-**Ubuntu/Debian:**
-```bash
-sudo apt install cmake ninja-build qt6-base-dev qt6-declarative-dev \
-  libkf6config-dev libkf6filemetadata-dev libkf6i18n-dev \
-  libkf6iconthemes-dev libkf6coreaddons-dev libkf6kio-dev \
-  libkf6kirigami2-dev libkf6windowsystem-dev libkf6crash-dev \
-  libmpv-dev ffmpeg
-```
+Below is the comprehensive list of packages and steps required to successfuly build it:
 
-**Fedora:**
-```bash
-sudo dnf install cmake ninja-build qt6-qtbase-devel qt6-qtdeclarative-devel \
-  kf6-kconfig-devel kf6-kfilemetadata-devel kf6-ki18n-devel \
-  kf6-kiconthemes-devel kf6-kcoreaddons-devel kf6-kio-devel \
-  kf6-kirigami-devel kf6-kwindowsystem-devel kf6-kcrash-devel \
-  mpv-libs-devel ffmpeg
-```
+1. Build Tools & Core Components
 
-**Arch Linux:**
-```bash
-sudo pacman -S cmake ninja qt6-base qt6-declarative \
-  kconfig kfilemetadata ki18n kiconthemes kcoreaddons kio \
-  kirigami kwindowsystem kcrash mpv ffmpeg
-```
+These are the fundamental tools required to manage the project's build logic and compilation.
 
-### Build Instructions
+    cmake: The cross-platform build system generator.
+
+    ninja-build: A fast build system used as an alternative to make.
+
+    extra-cmake-modules: Essential KDE-specific CMake macros and scripts.
+
+    pkg-config: A helper tool used when compiling applications and libraries.
+
+2. Qt 6 Development Libraries
+
+Haruna is built on Qt 6 and requires several specific modules, including private headers for deep integration.
+
+    qt6-base-dev: Basic Qt 6 development files.
+
+    qt6-base-private-dev: Private headers for Qt 6 Core.
+
+    qt6-declarative-dev: Qt 6 QML and Quick development files.
+
+    qt6-declarative-private-dev: Private headers for Qt 6 QML modules.
+
+    qt6-5compat-dev: Compatibility layer for Qt 5 APIs used in Qt 6 projects.
+
+    libqt6dbus6-dev: D-Bus support for Qt 6.
+
+3. KDE Frameworks 6 (KF6) Development Files
+
+Haruna relies heavily on KDE's modular libraries for functionality like metadata extraction, window management, and UI components.
+
+    libkf6config-dev: Configuration settings framework.
+
+    libkf6coreaddons-dev: Add-ons to the standard Qt Core.
+
+    libkf6filemetadata-dev: Library for extracting and handling file metadata.
+
+    libkf6i18n-dev: Internationalization and translation support.
+
+    libkf6iconthemes-dev: Support for icon themes and widgets.
+
+    libkf6kio-dev: Network and resource abstraction (KIO).
+
+    libkf6windowsystem-dev: Window manager interaction libraries.
+
+    libkf6colorscheme-dev: Classes for interacting with system color schemes.
+
+    libkf6crash-dev: Support for application crash analysis.
+
+    libkf6dbusaddons-dev: Classes that extend Qt D-Bus functionality.
+
+    libkirigami-dev: Development headers for the Kirigami UI framework (Note: binary package name is often libkirigami-dev on Debian).
+
+4. Multimedia & External Dependencies
+
+    libmpv-dev: Development headers for the mpv media player engine.
+
+    ffmpeg and libavcodec-dev, libavformat-dev, libswscale-dev: Required for media processing and thumbnail generation.
+
+    breeze-icon-theme: Recommended for a consistent KDE look and feel.
+
+5. Essential Runtime QML Modules
+
+Even if the build succeeds, the application will crash at startup if these QML modules are not installed.
+
+    qml6-module-org-kde-kirigami: The Kirigami UI components.
+
+    qml6-module-org-kde-desktop: Native desktop styling for QML applications.
+
+    qml6-module-org-kde-kitemmodels: Additional item/view models for data display.
+
+    qml6-module-org-kde-coreaddons: QML bindings for CoreAddons.
+
+6. Source-Built Dependencies
+
+On Debian 13, some specific libraries may not yet be in the official repositories and must be built from source:
+
+    MpvQt: A Qt wrapper for libmpv.
+
+    KDSingleApplication: A helper for single-instance policy enforcement.
+
+### Build Instructions for Debian 13
 
 #### Standard Build (Recommended for Most Users)
 
+Run this command from terminal:
+
+```bash
+sudo apt update && sudo apt install -y \
+cmake ninja-build extra-cmake-modules pkg-config gettext \
+qt6-base-dev qt6-base-private-dev qt6-declarative-dev qt6-declarative-private-dev \
+qt6-5compat-dev libqt6dbus6-dev libqt6sql6-sqlite \
+libkf6config-dev libkf6coreaddons-dev libkf6filemetadata-dev libkf6i18n-dev \
+libkf6iconthemes-dev libkf6kio-dev libkf6windowsystem-dev libkf6colorscheme-dev \
+libkf6crash-dev libkf6dbusaddons-dev libkirigami-dev \
+libmpv-dev ffmpeg libavcodec-dev libavformat-dev libswscale-dev breeze-icon-theme \
+qml6-module-org-kde-kirigami qml6-module-org-kde-desktop qml6-module-org-kde-kitemmodels \
+qml6-module-org-kde-coreaddons qml6-module-org-kde-config qml6-module-org-kde-kquickcontrols
+```
+
+This script automates the installation of the remaining source dependencies (MpvQt and KDSingleApplication) that are not yet available in the Debian 13 repositories.
+
+Dependency Automation Script
+
+Copy and paste this into your terminal to build and install the final required components:
+
+```bash
+# Create a temporary directory for building dependencies
+mkdir -p ~/HarunaDeps && cd ~/HarunaDeps
+
+# 1. Clone and patch MpvQt
+git clone https://invent.kde.org/libraries/mpvqt.git
+cd mpvqt
+# Automatically comment out the faulty ClangFormat lines
+sed -i 's/^kde_clang_format/# kde_clang_format/g' CMakeLists.txt
+cmake -B build -G Ninja -DCMAKE_INSTALL_PREFIX=/usr
+sudo cmake --build build --target install
+cd ..
+
+# 2. Clone and patch KDSingleApplication
+git clone https://github.com/KDAB/KDSingleApplication.git
+cd KDSingleApplication
+# Automatically comment out the faulty ClangFormat lines if present
+sed -i 's/^kde_clang_format/# kde_clang_format/g' CMakeLists.txt
+# Build with Qt6 support enabled
+cmake -B build -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DKDSingleApplication_QT6=ON
+sudo cmake --build build --target install
+cd ..
+
+# Clean up build files
+cd ~ && rm -rf ~/HarunaDeps
+
+echo "-------------------------------------------------------"
+echo "Dependencies successfully patched and installed."
+echo "You can now return to your Haruna folder and run ninja."
+echo "-------------------------------------------------------"
+```
+Finish the cleanup by running the removal command with sudo:
+
+```bash
+sudo rm -rf ~/HarunaDeps
+```
+
 If you have Qt6 and KF6 installed in standard system locations:
+
 ```bash
 # Clone the repository
 git clone https://github.com/crojack/haruna-with-internet-radio-support/
-cd haruna-enhanced
+cd haruna-with-internet-radio-support/
 
 # Configure
 cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
