@@ -6,8 +6,6 @@
 
 find_package(Qt6 REQUIRED COMPONENTS DBus)
 
-include(/opt/qt6/lib/cmake/Qt6DBus/Qt6DBusMacros.cmake)
-
 # DATA_ICONS is defined in data/CMakeLists.txt
 ecm_add_app_icon(ICONS_SRCS ICONS ${DATA_ICONS})
 
@@ -130,14 +128,13 @@ target_include_directories(haruna
         models
         mpv
         ${FFMPEG_INCLUDE_DIRS}
-        /opt/kf6/include/KF6/KFileMetaData
+        ${KF6FileMetaData_INCLUDE_DIRS}
 )
 
-# In src/radio/CMakeLists.txt
 target_include_directories(radio
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
-        /opt/kf6/include/KF6/KFileMetaData
+        ${KF6FileMetaData_INCLUDE_DIRS}
 )
 
 target_include_directories(playlist
@@ -168,6 +165,7 @@ target_link_libraries(haruna PRIVATE
     KF6::Kirigami
     KF6::WindowSystem
     KF6::Crash
+	KF6::FileMetaData
 
     KDAB::kdsingleapplication
 
