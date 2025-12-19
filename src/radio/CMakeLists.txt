@@ -21,8 +21,8 @@ qt_add_qml_module(radio
 target_include_directories(radio
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
-        /opt/kf6/include/KF6/KFileMetaData
-        ${CMAKE_SOURCE_DIR}/src/youtube
+		${CMAKE_SOURCE_DIR}/src/youtube
+        ${KF6FileMetaData_INCLUDE_DIRS} 
 )
 
 target_link_libraries(radio
@@ -36,6 +36,7 @@ target_link_libraries(radio
 
         KF6::ConfigCore
         KF6::I18n
+		KF6::FileMetaData
 
         utilitiesplugin
 )
