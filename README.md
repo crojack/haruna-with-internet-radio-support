@@ -112,7 +112,7 @@ Clean separation of media types with two dedicated tabs:
 
 ### Prerequisites
 
-### Debian 13 Trixie
+### Debian/Ubuntu/Mint
 
 Compiling a modern KDE 6 application like Haruna Enhanced on Debian 13 requires a specific combination of build tools, development headers, and runtime QML modules.
 
@@ -210,7 +210,7 @@ Run this command from terminal:
 sudo apt update && sudo apt install -y \
 cmake ninja-build extra-cmake-modules pkg-config gettext \
 qt6-base-dev qt6-base-private-dev qt6-declarative-dev qt6-declarative-private-dev \
-qt6-5compat-dev libqt6dbus6-dev libqt6sql6-sqlite \
+qt6-5compat-dev libqt6sql6-sqlite \
 libkf6config-dev libkf6coreaddons-dev libkf6filemetadata-dev libkf6i18n-dev \
 libkf6iconthemes-dev libkf6kio-dev libkf6windowsystem-dev libkf6colorscheme-dev \
 libkf6crash-dev libkf6dbusaddons-dev libkirigami-dev \
