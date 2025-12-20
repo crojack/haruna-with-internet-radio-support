@@ -184,4 +184,15 @@ if (CMAKE_SYSTEM_NAME IN_LIST DBUS_PLATFORMS)
         Qt6::DBus
     )
 endif()
+
 install(TARGETS haruna DESTINATION ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
+
+# Install images to share directory
+# These will be installed to /usr/local/share/haruna/images (or similar)
+# and then copied to ~/.local/share/KDE/haruna/images at first run
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../images/
+    DESTINATION ${KDE_INSTALL_DATADIR}/haruna/images
+    FILES_MATCHING
+    PATTERN "*.jpg"
+    PATTERN "*.png"
+)
