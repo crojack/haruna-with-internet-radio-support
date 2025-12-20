@@ -200,7 +200,7 @@ On Debian 13, some specific libraries may not yet be in the official repositorie
 
     KDSingleApplication: A helper for single-instance policy enforcement.
 
-### Build Instructions for Debian 13
+### Build Instructions for Debian/Ubuntu/Mint
 
 #### Standard Build (Recommended for Most Users)
 
