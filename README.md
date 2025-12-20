@@ -282,20 +282,19 @@ Place your custom images in `~/.local/share/KDE/haruna/images/`:
 #### Background Images
 ```
 ~/.local/share/KDE/haruna/images/background/
-  ├── background.jpg          # Default idle background
-  └── music-default.jpg       # Music playback background
+  └── background.jpg          # Default idle background
 ```
 
 #### Album Art
 ```
 ~/.local/share/KDE/haruna/images/default-album-art
-  └── album-art-default.jpg   # Default album art
+  └── music-default.jpg   # Default album art
 ```
 
 #### Radio Logo
 ```
 ~/.local/share/KDE/haruna/images/radio-stations-logos/
-  └── radio-default.png       # Default radio station logo
+  └── radio-default.jpg       # Default radio station logo
 ```
 
 ### Radio Favorites
