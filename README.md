@@ -110,95 +110,7 @@ Clean separation of media types with two dedicated tabs:
 ---
 ## Installation
 
-### Prerequisites
-
-### Debian/Ubuntu/Mint
-
-Compiling a modern KDE 6 application like Haruna Enhanced on Debian 13 requires a specific combination of build tools, development headers, and runtime QML modules.
-
-Below is the comprehensive list of packages and steps required to successfuly build it:
-
-1. Build Tools & Core Components
-
-These are the fundamental tools required to manage the project's build logic and compilation.
-
-    cmake: The cross-platform build system generator.
-
-    ninja-build: A fast build system used as an alternative to make.
-
-    extra-cmake-modules: Essential KDE-specific CMake macros and scripts.
-
-    pkg-config: A helper tool used when compiling applications and libraries.
-
-2. Qt 6 Development Libraries
-
-Haruna is built on Qt 6 and requires several specific modules, including private headers for deep integration.
-
-    qt6-base-dev: Basic Qt 6 development files.
-
-    qt6-base-private-dev: Private headers for Qt 6 Core.
-
-    qt6-declarative-dev: Qt 6 QML and Quick development files.
-
-    qt6-declarative-private-dev: Private headers for Qt 6 QML modules.
-
-    qt6-5compat-dev: Compatibility layer for Qt 5 APIs used in Qt 6 projects.
-
-    libqt6dbus6-dev: D-Bus support for Qt 6.
-
-3. KDE Frameworks 6 (KF6) Development Files
-
-Haruna relies heavily on KDE's modular libraries for functionality like metadata extraction, window management, and UI components.
-
-    libkf6config-dev: Configuration settings framework.
-
-    libkf6coreaddons-dev: Add-ons to the standard Qt Core.
-
-    libkf6filemetadata-dev: Library for extracting and handling file metadata.
-
-    libkf6i18n-dev: Internationalization and translation support.
-
-    libkf6iconthemes-dev: Support for icon themes and widgets.
-
-    libkf6kio-dev: Network and resource abstraction (KIO).
-
-    libkf6windowsystem-dev: Window manager interaction libraries.
-
-    libkf6colorscheme-dev: Classes for interacting with system color schemes.
-
-    libkf6crash-dev: Support for application crash analysis.
-
-    libkf6dbusaddons-dev: Classes that extend Qt D-Bus functionality.
-
-    libkirigami-dev: Development headers for the Kirigami UI framework (Note: binary package name is often libkirigami-dev on Debian).
-
-4. Multimedia & External Dependencies
-
-    libmpv-dev: Development headers for the mpv media player engine.
-
-    ffmpeg and libavcodec-dev, libavformat-dev, libswscale-dev: Required for media processing and thumbnail generation.
-
-    breeze-icon-theme: Recommended for a consistent KDE look and feel.
-
-5. Essential Runtime QML Modules
-
-Even if the build succeeds, the application will crash at startup if these QML modules are not installed.
-
-    qml6-module-org-kde-kirigami: The Kirigami UI components.
-
-    qml6-module-org-kde-desktop: Native desktop styling for QML applications.
-
-    qml6-module-org-kde-kitemmodels: Additional item/view models for data display.
-
-    qml6-module-org-kde-coreaddons: QML bindings for CoreAddons.
-
-6. Source-Built Dependencies
-
-On Debian 13, some specific libraries may not yet be in the official repositories and must be built from source:
-
-    MpvQt: A Qt wrapper for libmpv.
-
-    KDSingleApplication: A helper for single-instance policy enforcement.
+Compiling a modern KDE 6 application like Haruna Enhanced on Debian 13 requires a specific combination of build tools, development headers, and runtime QML modules
 
 ### Build Instructions for Debian/Ubuntu/Mint
 
@@ -219,7 +131,7 @@ qml6-module-org-kde-kirigami qml6-module-org-kde-desktop qml6-module-org-kde-kit
 qml6-module-org-kde-coreaddons qml6-module-org-kde-config qml6-module-org-kde-kquickcontrols
 ```
 
-This script automates the installation of the remaining source dependencies (MpvQt and KDSingleApplication) that are not yet available in the Debian 13 repositories.
+This script automates the installation of the remaining source dependencies (MpvQt and KDSingleApplication)
 
 Dependency Automation Script
 
@@ -376,7 +288,7 @@ Place your custom images in `~/.local/share/KDE/haruna/images/`:
 
 #### Album Art
 ```
-~/.local/share/KDE/haruna/images/
+~/.local/share/KDE/haruna/images/default-album-art
   └── album-art-default.jpg   # Default album art
 ```
 
