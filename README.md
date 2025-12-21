@@ -194,7 +194,16 @@ ninja -C build
 sudo cmake --install build
 ```
 
+## Post-Compilation Setup
+
+After compiling Haruna with Internet Radio support, install the required images:
+```bash
+./install_images.sh
+```
+
+--------------------------------------------------------------------------
 #### Alternative: Using Make Instead of Ninja
+
 ```bash
 # Configure
 cmake -B build -DCMAKE_BUILD_TYPE=Release
@@ -207,6 +216,13 @@ cmake --build build -j$(nproc)
 
 # Optional: Install
 sudo cmake --install build
+```
+
+## Post-Compilation Setup
+
+After compiling Haruna with Internet Radio support, install the required images:
+```bash
+./install_images.sh
 ```
 
 #### Custom Qt6/KF6 Locations
@@ -226,6 +242,13 @@ ninja -C build
 ./build/bin/haruna
 ```
 
+## Post-Compilation Setup
+
+After compiling Haruna with Internet Radio support, install the required images:
+```bash
+./install_images.sh
+```
+
 #### Custom Install Prefix
 
 To install to a custom location instead of system-wide:
@@ -240,6 +263,13 @@ ninja -C build
 
 # Install to ~/.local
 cmake --install build
+
+## Post-Compilation Setup
+
+After compiling Haruna with Internet Radio support, install the required images:
+```bash
+./install_images.sh
+```
 
 # Run (make sure ~/.local/bin is in your PATH)
 haruna
@@ -280,21 +310,10 @@ ldd ./build/bin/haruna
 Place your custom images in `~/.local/share/KDE/haruna/images/`:
 
 #### Background Images
-```
-~/.local/share/KDE/haruna/images/background/
-  └── background.jpg          # Default idle background
-```
 
-#### Album Art
-```
-~/.local/share/KDE/haruna/images/default-album-art
-  └── music-default.jpg   # Default album art
-```
-
-#### Radio Logo
-```
-~/.local/share/KDE/haruna/images/radio-stations-logos/
-  └── radio-default.jpg       # Default radio station logo
+After compiling Haruna with Internet Radio support, install the required images:
+```bash
+./install_images.sh
 ```
 
 ### Radio Favorites
