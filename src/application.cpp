@@ -104,7 +104,6 @@ Application::Application()
     setupAboutData();
     setupCommandLineParser();
     setupQmlSettingsTypes();
-    setupImagesDirectory();
 
     KCrash::initialize();
 
@@ -113,95 +112,6 @@ Application::Application()
 
 Application::~Application()
 {
-}
-
-void Application::setupImagesDirectory()
-{
-    // Get the user's local data directory
-    QString userImagesPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + QStringLiteral("/images");
-    
-    // Check if the images directory already exists
-    QDir userImagesDir(userImagesPath);
-    if (userImagesDir.exists()) {
-        // Directory already exists, no need to copy
-        return;
-    }
-    
-    // Try to find the system-wide installation of images
-    // This could be in /usr/share/haruna/images or /usr/local/share/haruna/images
-    QStringList possibleSystemPaths;
-    possibleSystemPaths << QStringLiteral("/usr/share/haruna/images");
-    possibleSystemPaths << QStringLiteral("/usr/local/share/haruna/images");
-    
-    // Also check relative to the application directory (for development builds)
-    QString appDirPath = QCoreApplication::applicationDirPath();
-    possibleSystemPaths << appDirPath + QStringLiteral("/../share/haruna/images");
-    possibleSystemPaths << appDirPath + QStringLiteral("/../../images");  // For development
-    
-    QString systemImagesPath;
-    for (const QString &path : possibleSystemPaths) {
-        QDir dir(path);
-        if (dir.exists()) {
-            systemImagesPath = dir.absolutePath();
-            break;
-        }
-    }
-    
-    if (systemImagesPath.isEmpty()) {
-        qWarning() << "Could not find system images directory. Checked paths:" << possibleSystemPaths;
-        return;
-    }
-    
-    // Create the user images directory structure
-    if (!userImagesDir.mkpath(userImagesPath)) {
-        qWarning() << "Failed to create user images directory:" << userImagesPath;
-        return;
-    }
-    
-    // Copy the images from system directory to user directory
-    copyDirectoryRecursively(systemImagesPath, userImagesPath);
-    
-    qDebug() << "Images copied from" << systemImagesPath << "to" << userImagesPath;
-}
-
-void Application::copyDirectoryRecursively(const QString &sourceDir, const QString &destDir)
-{
-    QDir source(sourceDir);
-    if (!source.exists()) {
-        return;
-    }
-    
-    QDir dest(destDir);
-    if (!dest.exists()) {
-        dest.mkpath(destDir);
-    }
-    
-    // Copy all files in the source directory
-    QStringList files = source.entryList(QDir::Files);
-    for (const QString &fileName : files) {
-        QString srcFilePath = source.absoluteFilePath(fileName);
-        QString destFilePath = dest.absoluteFilePath(fileName);
-        
-        // Only copy if destination doesn't exist or is older
-        QFileInfo srcInfo(srcFilePath);
-        QFileInfo destInfo(destFilePath);
-        
-        if (!destInfo.exists() || srcInfo.lastModified() > destInfo.lastModified()) {
-            // Remove existing file if it exists
-            if (destInfo.exists()) {
-                QFile::remove(destFilePath);
-            }
-            QFile::copy(srcFilePath, destFilePath);
-        }
-    }
-    
-    // Recursively copy subdirectories
-    QStringList subdirs = source.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
-    for (const QString &subdirName : subdirs) {
-        QString srcSubdirPath = source.absoluteFilePath(subdirName);
-        QString destSubdirPath = dest.absoluteFilePath(subdirName);
-        copyDirectoryRecursively(srcSubdirPath, destSubdirPath);
-    }
 }
 
 void Application::setupWorkerThread()

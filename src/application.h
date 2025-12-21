@@ -87,8 +87,6 @@ private:
     void setupAboutData();
     void setupCommandLineParser();
     void setupQmlSettingsTypes();
-    void setupImagesDirectory();
-    void copyDirectoryRecursively(const QString &sourceDir, const QString &destDir);
     QAbstractItemModel *colorSchemesModel();
     QApplication *m_app{nullptr};
     KAboutData m_aboutData;
