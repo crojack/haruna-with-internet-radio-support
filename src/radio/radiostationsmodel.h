@@ -9,6 +9,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QList>
+#include <QHostInfo>
 #include <qqml.h>
 #include "radiostation.h"
 
@@ -34,6 +35,12 @@ public:
         CodecRole,
         IsFavoriteRole,
         VotesRole
+    };
+
+    enum SearchType {
+        SearchByName,
+        SearchByCountry,
+        SearchByTag
     };
 
     explicit RadioStationsModel(QObject *parent = nullptr);
@@ -67,10 +74,15 @@ private:
     void searchByName(const QString &query);
     void searchByCountry(const QString &countryCode);
     void searchByTag(const QString &tag);
+    void retrySearch();
     void handleSearchReply(QNetworkReply *reply);
     void processStations(const QByteArray &data);
     QString getFavoritesFilePath() const;
     bool isFavoriteStation(const QString &uuid) const;
+    void discoverServers();
+    void handleServerDiscovery(QHostInfo hostInfo);
+    QString getNextEndpoint();
+    void abortCurrentRequest();
     
     QNetworkAccessManager *m_networkManager;
     QList<RadioStation> m_stations;
@@ -78,13 +90,23 @@ private:
     bool m_isSearching{false};
     QString m_lastError;
     
-    // API endpoints - will try multiple mirrors
-    const QStringList m_apiEndpoints = {
-        QStringLiteral("https://de1.api.radio-browser.info"),
-        QStringLiteral("https://at1.api.radio-browser.info"),
-        QStringLiteral("https://nl1.api.radio-browser.info")
-    };
+    // Dynamic server list
+    QStringList m_apiEndpoints;
     int m_currentEndpointIndex{0};
+    int m_retryCount{0};
+    static constexpr int MAX_RETRIES = 1;
+    static constexpr int REQUEST_TIMEOUT_MS = 15000;
+    
+    // Store current search parameters for retry
+    SearchType m_currentSearchType{SearchByName};
+    QString m_currentSearchQuery;
+    
+    // Track current request to prevent crashes
+    QNetworkReply *m_currentReply{nullptr};
+    
+    // Server discovery
+    bool m_serversDiscovered{false};
+    int m_discoveryLookupId{-1};
 };
 
 #endif // RADIOSTATIONSMODEL_H

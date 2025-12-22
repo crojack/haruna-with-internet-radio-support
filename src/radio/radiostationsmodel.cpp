@@ -13,12 +13,55 @@
 #include <QDir>
 #include <QStandardPaths>
 #include <QUrlQuery>
+#include <QRandomGenerator>
 
 RadioStationsModel::RadioStationsModel(QObject *parent)
     : QAbstractListModel(parent)
     , m_networkManager(new QNetworkAccessManager(this))
 {
+    // Use ONLY the verified working server
+    m_apiEndpoints.clear();
+    m_apiEndpoints << QStringLiteral("https://de1.api.radio-browser.info");
+    
+    m_serversDiscovered = true; // Mark as ready
+    
+    qDebug() << "Using radio-browser.info API endpoint:" << m_apiEndpoints.first();
+    
     loadFavorites();
+}
+
+void RadioStationsModel::discoverServers()
+{
+    // Not needed - using static list of known working servers
+}
+
+void RadioStationsModel::handleServerDiscovery(QHostInfo hostInfo)
+{
+    Q_UNUSED(hostInfo);
+    // Not needed - using static list of known working servers
+}
+
+QString RadioStationsModel::getNextEndpoint()
+{
+    // If servers haven't been discovered yet, use fallback
+    if (!m_serversDiscovered || m_apiEndpoints.isEmpty()) {
+        return QStringLiteral("https://de1.api.radio-browser.info");
+    }
+    
+    if (m_currentEndpointIndex >= m_apiEndpoints.count()) {
+        m_currentEndpointIndex = 0;
+    }
+    
+    return m_apiEndpoints[m_currentEndpointIndex];
+}
+
+void RadioStationsModel::abortCurrentRequest()
+{
+    if (m_currentReply && m_currentReply->isRunning()) {
+        qDebug() << "Aborting current request";
+        m_currentReply->abort();
+        m_currentReply = nullptr;
+    }
 }
 
 int RadioStationsModel::rowCount(const QModelIndex &parent) const
@@ -94,6 +137,13 @@ void RadioStationsModel::searchStations(const QString &query)
         return;
     }
 
+    // Abort any in-progress request
+    abortCurrentRequest();
+
+    // Reset retry counter and endpoint index for new search
+    m_retryCount = 0;
+    m_currentEndpointIndex = 0;
+
     // Check if user wants favorites
     QString lowerQuery = query.toLower().trimmed();
     if (lowerQuery == QStringLiteral("fav") || lowerQuery == QStringLiteral("favorite") || 
@@ -106,17 +156,23 @@ void RadioStationsModel::searchStations(const QString &query)
     // Check if it's a genre search
     if (lowerQuery.startsWith(QStringLiteral("genre:"))) {
         QString genre = lowerQuery.mid(6).trimmed();
+        m_currentSearchType = SearchByTag;
+        m_currentSearchQuery = genre;
         searchByTag(genre);
         return;
     }
 
     // Check if it's a country code (2 letters)
     if (query.length() == 2 && query.toUpper() == query) {
+        m_currentSearchType = SearchByCountry;
+        m_currentSearchQuery = query.toUpper();
         searchByCountry(query.toUpper());
         return;
     }
 
     // Default: search by name
+    m_currentSearchType = SearchByName;
+    m_currentSearchQuery = query;
     searchByName(query);
 }
 
@@ -125,17 +181,22 @@ void RadioStationsModel::searchByName(const QString &query)
     m_isSearching = true;
     Q_EMIT isSearchingChanged();
 
-    QString endpoint = m_apiEndpoints[m_currentEndpointIndex];
+    QString endpoint = getNextEndpoint();
     QUrl url(endpoint + QStringLiteral("/json/stations/byname/") + QString::fromUtf8(QUrl::toPercentEncoding(query)));
     
     qDebug() << "Searching stations by name:" << query << "at" << url.toString();
+    qDebug() << "Endpoint:" << (m_currentEndpointIndex + 1) << "of" << m_apiEndpoints.count() 
+             << "| Retry:" << m_retryCount << "of" << MAX_RETRIES;
 
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("Haruna/1.0"));
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+    request.setTransferTimeout(REQUEST_TIMEOUT_MS);
     
-    QNetworkReply *reply = m_networkManager->get(request);
-    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
-        handleSearchReply(reply);
+    m_currentReply = m_networkManager->get(request);
+    
+    connect(m_currentReply, &QNetworkReply::finished, this, [this]() {
+        handleSearchReply(m_currentReply);
     });
 }
 
@@ -144,17 +205,22 @@ void RadioStationsModel::searchByCountry(const QString &countryCode)
     m_isSearching = true;
     Q_EMIT isSearchingChanged();
 
-    QString endpoint = m_apiEndpoints[m_currentEndpointIndex];
+    QString endpoint = getNextEndpoint();
     QUrl url(endpoint + QStringLiteral("/json/stations/bycountrycodeexact/") + countryCode);
     
     qDebug() << "Searching stations by country:" << countryCode << "at" << url.toString();
+    qDebug() << "Endpoint:" << (m_currentEndpointIndex + 1) << "of" << m_apiEndpoints.count() 
+             << "| Retry:" << m_retryCount << "of" << MAX_RETRIES;
 
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("Haruna/1.0"));
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+    request.setTransferTimeout(REQUEST_TIMEOUT_MS);
     
-    QNetworkReply *reply = m_networkManager->get(request);
-    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
-        handleSearchReply(reply);
+    m_currentReply = m_networkManager->get(request);
+    
+    connect(m_currentReply, &QNetworkReply::finished, this, [this]() {
+        handleSearchReply(m_currentReply);
     });
 }
 
@@ -163,39 +229,99 @@ void RadioStationsModel::searchByTag(const QString &tag)
     m_isSearching = true;
     Q_EMIT isSearchingChanged();
 
-    QString endpoint = m_apiEndpoints[m_currentEndpointIndex];
+    QString endpoint = getNextEndpoint();
     QUrl url(endpoint + QStringLiteral("/json/stations/bytagexact/") + QString::fromUtf8(QUrl::toPercentEncoding(tag)));
     
     qDebug() << "Searching stations by tag:" << tag << "at" << url.toString();
+    qDebug() << "Endpoint:" << (m_currentEndpointIndex + 1) << "of" << m_apiEndpoints.count() 
+             << "| Retry:" << m_retryCount << "of" << MAX_RETRIES;
 
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("Haruna/1.0"));
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+    request.setTransferTimeout(REQUEST_TIMEOUT_MS);
     
-    QNetworkReply *reply = m_networkManager->get(request);
-    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
-        handleSearchReply(reply);
+    m_currentReply = m_networkManager->get(request);
+    
+    connect(m_currentReply, &QNetworkReply::finished, this, [this]() {
+        handleSearchReply(m_currentReply);
     });
+}
+
+void RadioStationsModel::retrySearch()
+{
+    qDebug() << "Retrying search with query:" << m_currentSearchQuery 
+             << "| Type:" << m_currentSearchType;
+    
+    switch (m_currentSearchType) {
+    case SearchByName:
+        searchByName(m_currentSearchQuery);
+        break;
+    case SearchByCountry:
+        searchByCountry(m_currentSearchQuery);
+        break;
+    case SearchByTag:
+        searchByTag(m_currentSearchQuery);
+        break;
+    }
 }
 
 void RadioStationsModel::handleSearchReply(QNetworkReply *reply)
 {
-    m_isSearching = false;
-    Q_EMIT isSearchingChanged();
+    if (!reply) {
+        qWarning() << "handleSearchReply called with null reply";
+        return;
+    }
 
     reply->deleteLater();
+    
+    // Clear the current reply pointer since we're done with it
+    if (m_currentReply == reply) {
+        m_currentReply = nullptr;
+    }
 
     if (reply->error() != QNetworkReply::NoError) {
         m_lastError = reply->errorString();
         Q_EMIT lastErrorChanged();
         qWarning() << "Radio station search error:" << m_lastError;
+        qWarning() << "Error code:" << reply->error();
         
-        // Try next endpoint if available
-        if (m_currentEndpointIndex < m_apiEndpoints.count() - 1) {
+        // Increment retry count
+        m_retryCount++;
+        
+        // Try next endpoint if available and haven't exceeded max retries
+        if (m_retryCount < MAX_RETRIES && m_currentEndpointIndex < m_apiEndpoints.count() - 1) {
             m_currentEndpointIndex++;
-            qDebug() << "Trying next endpoint:" << m_apiEndpoints[m_currentEndpointIndex];
+            qDebug() << "Trying next endpoint...";
+            
+            // Actually retry the search with the new endpoint
+            retrySearch();
+            return; // Don't set m_isSearching to false yet
+        } else {
+            // All endpoints failed or max retries reached
+            qWarning() << "All endpoints failed or max retries reached";
+            qWarning() << "Tried" << m_retryCount << "times across" << (m_currentEndpointIndex + 1) << "endpoints";
+            
+            m_lastError = QStringLiteral("Radio Browser API is temporarily unavailable. Please try again later.");
+            Q_EMIT lastErrorChanged();
+            
+            // Reset for next search
+            m_currentEndpointIndex = 0;
+            m_retryCount = 0;
+            
+            m_isSearching = false;
+            Q_EMIT isSearchingChanged();
+            Q_EMIT searchCompleted(0); // Signal with 0 results
+            return;
         }
-        return;
     }
+
+    // Success! Reset counters for next search
+    m_currentEndpointIndex = 0;
+    m_retryCount = 0;
+    
+    m_isSearching = false;
+    Q_EMIT isSearchingChanged();
 
     QByteArray data = reply->readAll();
     processStations(data);
